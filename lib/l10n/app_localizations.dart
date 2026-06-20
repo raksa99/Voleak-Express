@@ -2878,7 +2878,7 @@ abstract class AppLocalizations {
   /// No description provided for @todayTripCardCapacity.
   ///
   /// In en, this message translates to:
-  /// **'{capacity} capacity'**
+  /// **'{capacity} tons'**
   String todayTripCardCapacity(int capacity);
 
   /// No description provided for @todayTripCardNoSchedule.
@@ -3352,7 +3352,7 @@ abstract class AppLocalizations {
   /// No description provided for @truckCapacity.
   ///
   /// In en, this message translates to:
-  /// **'{capacity} capacity'**
+  /// **'{capacity} tons'**
   String truckCapacity(int capacity);
 
   /// No description provided for @edit.
@@ -3436,13 +3436,13 @@ abstract class AppLocalizations {
   /// No description provided for @seatCapacity.
   ///
   /// In en, this message translates to:
-  /// **'Seat Capacity'**
+  /// **'Capacity (Tons)'**
   String get seatCapacity;
 
   /// No description provided for @seatCapacityHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. 40'**
+  /// **'e.g. 3'**
   String get seatCapacityHint;
 
   /// No description provided for @truckPhoto.

@@ -1021,7 +1021,7 @@
       }
     }
   },
-  "todayTripCardCapacity": "{capacity} capacity",
+  "todayTripCardCapacity": "{capacity} tons",
   "@todayTripCardCapacity": {
     "placeholders": {
       "capacity": {
@@ -1237,7 +1237,7 @@
   "noTrucksYet": "No trucks yet",
   "addYourFirstTruck": "Add your first truck to get started",
   "addTruck": "Add Truck",
-  "truckCapacity": "{capacity} capacity",
+  "truckCapacity": "{capacity} tons",
   "@truckCapacity": {
     "placeholders": {
       "capacity": {
@@ -1258,8 +1258,8 @@
   "required": "Required",
   "truckModel": "Truck Model",
   "truckModelHint": "e.g. ISUZU FTR",
-  "seatCapacity": "Seat Capacity",
-  "seatCapacityHint": "e.g. 40",
+  "seatCapacity": "Capacity (Tons)",
+  "seatCapacityHint": "e.g. 3",
   "truckPhoto": "Truck Photo",
   "takePhoto": "Take Photo",
   "importFromGallery": "Import from Gallery",

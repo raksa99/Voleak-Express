@@ -208,7 +208,7 @@ class TodayTripCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       const Icon(
-                        Icons.event_seat_outlined,
+                        Icons.scale_outlined,
                         color: Colors.white70,
                         size: 16,
                       ),

@@ -1585,7 +1585,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String todayTripCardCapacity(int capacity) {
-    return '$capacity capacity';
+    return '$capacity tons';
   }
 
   @override
@@ -1863,7 +1863,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String truckCapacity(int capacity) {
-    return '$capacity capacity';
+    return '$capacity tons';
   }
 
   @override
@@ -1906,10 +1906,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get truckModelHint => 'e.g. ISUZU FTR';
 
   @override
-  String get seatCapacity => 'Seat Capacity';
+  String get seatCapacity => 'Capacity (Tons)';
 
   @override
-  String get seatCapacityHint => 'e.g. 40';
+  String get seatCapacityHint => 'e.g. 3';
 
   @override
   String get truckPhoto => 'Truck Photo';

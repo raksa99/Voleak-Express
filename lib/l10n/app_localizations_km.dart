@@ -1588,7 +1588,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String todayTripCardCapacity(int capacity) {
-    return '$capacity ចំណុះ';
+    return '$capacity តោន';
   }
 
   @override
@@ -1867,7 +1867,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String truckCapacity(int capacity) {
-    return '$capacity ចំណុះ';
+    return '$capacity តោន';
   }
 
   @override
@@ -1910,10 +1910,10 @@ class AppLocalizationsKm extends AppLocalizations {
   String get truckModelHint => 'ឧ. Hyundai Universe';
 
   @override
-  String get seatCapacity => 'សមត្ថភាពចំណុះ';
+  String get seatCapacity => 'សមត្ថភាពចំណុះ (តោន)';
 
   @override
-  String get seatCapacityHint => 'ឧ. 40';
+  String get seatCapacityHint => 'ឧ. ៣';
 
   @override
   String get truckPhoto => 'រូបថតឡានដឹក';

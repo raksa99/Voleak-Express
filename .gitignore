@@ -52,3 +52,4 @@ app.*.map.json
 
 # document ignore 
 /BusExpress_System_Documentation.docx
+.vercel
