@@ -35,3 +35,31 @@ VALUES
   ('r1-uuid-phnom-penh-siem-reap', 'Kompong Thom Stop', 2, 12.7111, 104.9022),
   ('r1-uuid-phnom-penh-siem-reap', 'Siem Reap Terminal', 3, 13.3633, 103.8564)
 ON CONFLICT (id) DO NOTHING;
+
+-- 5. Insert Demo Users (Drivers, Managers, and Corporate)
+INSERT INTO public.users (id, name, email, phone, role, status)
+VALUES
+  ('demo-corporate-id', 'Voleak Logistics Corp', 'corporate@voleak.express', '+855 12 333 444', 'corporate', 'active'),
+  ('demo-driver-id', 'Sok Sokha', 'driver@voleak.express', '+855 12 555 555', 'driver', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+-- 6. Insert Demo Schedule
+INSERT INTO public.schedules (id, route_id, bus_id, driver_id, departure_time, arrival_time, days_of_week, price, status)
+VALUES
+  ('demo-schedule-id', 'r1-uuid-phnom-penh-siem-reap', '11111111-1111-1111-1111-111111111111', 'demo-driver-id', '08:00:00', '13:30:00', '1,2,3,4,5,6,7', 15.00, 'active')
+ON CONFLICT (id) DO NOTHING;
+
+-- 7. Insert Demo Trip (In Progress, so it can be tracked!)
+INSERT INTO public.trips (id, schedule_id, trip_date, bus_id, driver_id, status, latitude, longitude)
+VALUES
+  ('demo-trip-id', 'demo-schedule-id', CURRENT_DATE, '11111111-1111-1111-1111-111111111111', 'demo-driver-id', 'in_progress', 11.9934, 104.9500)
+ON CONFLICT (id) DO NOTHING;
+
+-- 8. Insert Demo Goods (Cargo Shipments for Corporate User)
+INSERT INTO public.goods (id, trip_id, sender_name, receiver_name, receiver_phone, description, weight_kg, status, corporate_id)
+VALUES
+  ('g1-uuid-electronics', 'demo-trip-id', 'Voleak Logistics Corp', 'Angkor Import Co.', '+855 88 123 456', 'Premium Electronics (ABA Terminals & Laptops)', 120.00, 'in_transit', 'demo-corporate-id'),
+  ('g2-uuid-coffee', NULL, 'Voleak Logistics Corp', 'Brown Coffee Siem Reap', '+855 92 888 777', 'Gourmet Coffee Beans & Espresso Machines', 45.0, 'pending', 'demo-corporate-id'),
+  ('g3-uuid-garments', 'demo-trip-id', 'Voleak Logistics Corp', 'Sihanoukville Port Hub', '+855 16 222 333', 'Export Garments & Textile Bags', 850.5, 'delivered', 'demo-corporate-id')
+ON CONFLICT (id) DO NOTHING;
+

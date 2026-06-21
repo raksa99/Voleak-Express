@@ -64,6 +64,7 @@ class UserModel {
   bool get isDriver => role == 'driver';
   bool get isOperatorAdmin => role == 'manager';
   bool get isSuperAdmin => role == 'admin';
+  bool get isCorporate => role == 'corporate';
 
   UserModel copyWith({
     String? name,

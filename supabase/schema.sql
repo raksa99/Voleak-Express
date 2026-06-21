@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   name          TEXT NOT NULL,
   email         TEXT UNIQUE,
   phone         TEXT,
-  role          TEXT NOT NULL DEFAULT 'passenger' CHECK (role IN ('passenger', 'driver', 'conductor', 'manager', 'admin', 'super_admin')),
+  role          TEXT NOT NULL DEFAULT 'passenger' CHECK (role IN ('passenger', 'driver', 'conductor', 'manager', 'admin', 'super_admin', 'corporate')),
   operator_id   UUID REFERENCES public.operators(id) ON DELETE SET NULL,
   status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
   age           INT,
@@ -205,6 +205,22 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications(user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at DESC);
 
+-- 1.16 GOODS (Cargo)
+CREATE TABLE IF NOT EXISTS public.goods (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_id        UUID REFERENCES public.trips(id) ON DELETE SET NULL,
+  sender_name    TEXT NOT NULL,
+  receiver_name  TEXT NOT NULL,
+  receiver_phone TEXT NOT NULL,
+  description    TEXT NOT NULL,
+  weight_kg      NUMERIC NOT NULL,
+  status         TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'loaded', 'in_transit', 'delivered', 'cancelled')),
+  corporate_id   UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at     TIMESTAMPTZ DEFAULT now()
+);
+
+
+
 
 -- ============================================================
 -- 2. HELPER FUNCTIONS & TRIGGERS
@@ -300,6 +316,7 @@ ALTER TABLE public.otp_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotion_usages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goods ENABLE ROW LEVEL SECURITY;
 
 -- 3.1 OPERATORS POLICIES
 DROP POLICY IF EXISTS "Anyone can view operators" ON public.operators;
@@ -448,6 +465,21 @@ CREATE POLICY "Users can update own notifications" ON public.notifications FOR U
 
 DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
 CREATE POLICY "Users can delete own notifications" ON public.notifications FOR DELETE USING (auth.uid() = user_id);
+
+
+-- 3.16 GOODS POLICIES
+DROP POLICY IF EXISTS "Users can view their own goods" ON public.goods;
+CREATE POLICY "Users can view their own goods" ON public.goods FOR SELECT
+  USING (auth.uid() = corporate_id);
+
+DROP POLICY IF EXISTS "Staff and admin can view all goods" ON public.goods;
+CREATE POLICY "Staff and admin can view all goods" ON public.goods FOR SELECT
+  USING (public.is_super_admin() OR EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('manager', 'admin')));
+
+DROP POLICY IF EXISTS "Staff and admin can manage all goods" ON public.goods;
+CREATE POLICY "Staff and admin can manage all goods" ON public.goods FOR ALL
+  USING (public.is_super_admin() OR EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('manager', 'admin')))
+  WITH CHECK (public.is_super_admin() OR EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('manager', 'admin')));
 
 
 -- ============================================================

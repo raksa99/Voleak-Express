@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/screens/drivers/driver_home_screen.dart';
 import '../../features/screens/managers/manager_home_screen.dart';
 import '../../features/screens/admins/admin_home_screen.dart';
+import '../../features/screens/corporate/corporate_home_screen.dart';
 import '../../features/screens/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,6 +18,8 @@ class NavigationHelper {
         screen = const ManagerHomeScreen();
       case 'admin':
         screen = const AdminHomeScreen();
+      case 'corporate':
+        screen = const CorporateHomeScreen();
       default:
         screen = const SplashScreen();
     }
