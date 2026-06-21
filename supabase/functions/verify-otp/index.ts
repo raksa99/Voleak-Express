@@ -6,7 +6,7 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
