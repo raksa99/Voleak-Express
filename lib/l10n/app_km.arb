@@ -707,5 +707,8 @@
   "daysAgo": "{days}ថ មុន",
   "language": "ភាសា",
   "english": "English",
-  "khmer": "ភាសាខ្មែរ"
+  "khmer": "ភាសាខ្មែរ",
+  "cardIdPhoto": "អត្តសញ្ញាណប័ណ្ណ",
+  "insertCardId": "បញ្ចូលអត្តសញ្ញាណប័ណ្ណ",
+  "cardIdRequired": "តម្រូវឱ្យមានអត្តសញ្ញាណប័ណ្ណ"
 }

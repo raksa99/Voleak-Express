@@ -1496,5 +1496,8 @@
   },
   "language": "Language",
   "english": "English",
-  "khmer": "ភាសាខ្មែរ"
+  "khmer": "ភាសាខ្មែរ",
+  "cardIdPhoto": "Card ID Photo",
+  "insertCardId": "Insert Card ID",
+  "cardIdRequired": "Card ID photo is required"
 }

@@ -2395,4 +2395,13 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get khmer => 'ភាសាខ្មែរ';
+
+  @override
+  String get cardIdPhoto => 'អត្តសញ្ញាណប័ណ្ណ';
+
+  @override
+  String get insertCardId => 'បញ្ចូលអត្តសញ្ញាណប័ណ្ណ';
+
+  @override
+  String get cardIdRequired => 'តម្រូវឱ្យមានអត្តសញ្ញាណប័ណ្ណ';
 }

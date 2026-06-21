@@ -2392,4 +2392,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get khmer => 'ភាសាខ្មែរ';
+
+  @override
+  String get cardIdPhoto => 'Card ID Photo';
+
+  @override
+  String get insertCardId => 'Insert Card ID';
+
+  @override
+  String get cardIdRequired => 'Card ID photo is required';
 }

@@ -4344,6 +4344,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ភាសាខ្មែរ'**
   String get khmer;
+
+  /// No description provided for @cardIdPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Card ID Photo'**
+  String get cardIdPhoto;
+
+  /// No description provided for @insertCardId.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Card ID'**
+  String get insertCardId;
+
+  /// No description provided for @cardIdRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Card ID photo is required'**
+  String get cardIdRequired;
 }
 
 class _AppLocalizationsDelegate

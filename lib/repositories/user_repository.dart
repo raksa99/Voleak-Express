@@ -45,7 +45,7 @@ class UserRepository extends BaseRepository {
     try {
       var query = client
           .from('users')
-          .select('id, name, email, phone, role, status')
+          .select('id, name, email, phone, role, status, card_id_url')
           .eq('operator_id', operatorId)
           .neq('role', 'passenger');
       if (role != null) {
@@ -62,7 +62,7 @@ class UserRepository extends BaseRepository {
     try {
       final data = await client
           .from('users')
-          .select('id, name, email, phone, role, status, created_at, operator_id')
+          .select('id, name, email, phone, role, status, created_at, operator_id, card_id_url')
           .order('created_at', ascending: false);
       return Success(data.map((e) => UserModel.fromMap(e)).toList());
     } catch (e) {

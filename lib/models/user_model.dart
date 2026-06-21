@@ -8,6 +8,7 @@ class UserModel {
   final String? operatorId;
   final int? age;
   final String? nationality;
+  final String? cardIdUrl;
   final DateTime? createdAt;
 
   const UserModel({
@@ -20,6 +21,7 @@ class UserModel {
     this.operatorId,
     this.age,
     this.nationality,
+    this.cardIdUrl,
     this.createdAt,
   });
 
@@ -34,6 +36,7 @@ class UserModel {
       operatorId: map['operator_id'] as String?,
       age: map['age'] as int?,
       nationality: map['nationality'] as String?,
+      cardIdUrl: map['card_id_url'] as String?,
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
           : null,
@@ -49,6 +52,7 @@ class UserModel {
     if (operatorId != null) 'operator_id': operatorId,
     if (age != null) 'age': age,
     if (nationality != null) 'nationality': nationality,
+    if (cardIdUrl != null) 'card_id_url': cardIdUrl,
   };
 
   String get initials => name != null && name!.isNotEmpty
@@ -70,6 +74,7 @@ class UserModel {
     String? operatorId,
     int? age,
     String? nationality,
+    String? cardIdUrl,
   }) {
     return UserModel(
       id: id,
@@ -81,6 +86,7 @@ class UserModel {
       operatorId: operatorId ?? this.operatorId,
       age: age ?? this.age,
       nationality: nationality ?? this.nationality,
+      cardIdUrl: cardIdUrl ?? this.cardIdUrl,
       createdAt: createdAt,
     );
   }

@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
@@ -25,7 +27,7 @@ class _ManagerStaffScreenState extends State<ManagerStaffScreen> {
     try {
       final data = await SupabaseConfig.client
           .from('users')
-          .select('id, name, email, phone, role, status')
+          .select('id, name, email, phone, role, status, card_id_url')
           .eq('operator_id', widget.operatorId)
           .eq('role', 'driver')
           .order('name');
@@ -162,11 +164,73 @@ class _StaffCard extends StatelessWidget {
 
   const _StaffCard({required this.member, required this.onToggle});
 
+  void _showCardIdDialog(BuildContext context, String url, String name) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              backgroundColor: const Color(0xFF9E7E38),
+              foregroundColor: Colors.white,
+              title: Text(
+                '$name - ${context.tr.cardIdPhoto}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            Container(
+              color: const Color(0xFFF8FAFC),
+              constraints: const BoxConstraints(maxHeight: 400),
+              width: double.infinity,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: CircularProgressIndicator(color: Color(0xFF9E7E38)),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text('Failed to load image', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = member['status'] as String;
     final role = member['role'] as String;
     final isActive = status == 'active';
+    final cardIdUrl = member['card_id_url'] as String?;
 
     final roleColor = role == 'driver'
         ? const Color(0xFF1A73E8)
@@ -329,6 +393,43 @@ class _StaffCard extends StatelessWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      if (cardIdUrl != null && cardIdUrl.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => _showCardIdDialog(context, cardIdUrl, member['name'] ?? ''),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9E7E38).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFF9E7E38).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.badge_rounded,
+                                  size: 12,
+                                  color: Color(0xFF9E7E38),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  context.tr.cardIdPhoto,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF9E7E38),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       const Spacer(),
                       GestureDetector(
                         onTap: onToggle,
@@ -394,6 +495,9 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  XFile? _selectedCardIdImage;
+  Uint8List? _selectedCardIdBytes;
+
   @override
   void initState() {
     super.initState();
@@ -409,20 +513,153 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickCardIdImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedCardIdImage = image;
+          _selectedCardIdBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showCardIdPickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr.cardIdPhoto,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _pickCardIdImage(ImageSource.camera);
+              },
+              icon: const Icon(Icons.camera_alt_rounded),
+              label: Text(context.tr.takePhoto),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9E7E38),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _pickCardIdImage(ImageSource.gallery);
+              },
+              icon: const Icon(Icons.photo_library_rounded),
+              label: Text(context.tr.importFromGallery),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF3F4F6),
+                foregroundColor: const Color(0xFF374151),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                context.tr.cancel,
+                style: const TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCardIdBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr.cardIdRequired),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
+      String email = _emailCtrl.text.trim();
+      if (email.isEmpty) {
+        final cleanPhone = _phoneCtrl.text.trim().replaceAll(RegExp(r'[^0-9+]'), '');
+        email = '$cleanPhone@voleak.express';
+      }
+
       // Step 1: Create Supabase auth account
       final response = await SupabaseConfig.client.auth.signUp(
-        email: _emailCtrl.text.trim(),
+        email: email,
         password: _passwordCtrl.text.trim(),
         data: {'name': _nameCtrl.text.trim(), 'phone': _phoneCtrl.text.trim()},
       );
 
       if (response.user == null) {
         throw Exception('Failed to create auth account');
+      }
+
+      // Upload Card ID image to storage
+      String? cardIdUrl;
+      if (_selectedCardIdBytes != null && _selectedCardIdImage != null) {
+        final ext = _selectedCardIdImage!.name.split('.').last;
+        final fileName = '${response.user!.id}_card_id_${DateTime.now().millisecondsSinceEpoch}.$ext';
+        await SupabaseConfig.client.storage
+            .from('staff-card-ids')
+            .uploadBinary(fileName, _selectedCardIdBytes!);
+        cardIdUrl = '${SupabaseConfig.storageUrl}/staff-card-ids/$fileName';
       }
 
       // Step 2: Update the auto-created users row with correct role
@@ -434,6 +671,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
             'role': _selectedRole,
             'operator_id': widget.operatorId,
             'status': 'active',
+            'card_id_url': cardIdUrl,
           })
           .eq('id', response.user!.id);
 
@@ -503,7 +741,96 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
               ),
               const SizedBox(height: 20),
 
-
+              // Card ID Selection Widget
+              GestureDetector(
+                onTap: _showCardIdPickerSheet,
+                child: Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _selectedCardIdBytes != null
+                          ? const Color(0xFF059669)
+                          : const Color(0xFF9E7E38).withOpacity(0.3),
+                      style: BorderStyle.solid,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _selectedCardIdBytes != null
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.memory(_selectedCardIdBytes!, fit: BoxFit.cover),
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        context.tr.changePhoto,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF9E7E38).withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.credit_card_rounded,
+                                  color: Color(0xFF9E7E38),
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                context.tr.insertCardId, // Khmer: បញ្ចូលអត្តសញ្ញាណប័ណ្ណ
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF9E7E38),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                context.tr.cardIdPhoto,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF9CA3AF),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
               _FormField(
                 controller: _nameCtrl,
@@ -520,7 +847,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
-                  if (v!.isEmpty) return context.tr.required;
+                  if (v == null || v.isEmpty) return null;
                   if (!v.contains('@')) return context.tr.invalidEmail;
                   return null;
                 },
