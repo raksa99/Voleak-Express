@@ -1,5 +1,8 @@
 {
   "cmake.sourceDirectory": "D:/Sv23/SA/BusExpress/bus_express/linux",
   "liveServer.settings.port": 5501,
-  "deno.enable": true
+  "deno.enable": true,
+  "deno.enablePaths": [
+    "supabase/functions"
+  ]
 }
