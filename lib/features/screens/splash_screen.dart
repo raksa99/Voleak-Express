@@ -144,7 +144,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   const SizedBox(height: 8),
                   Text(
-                    'Premium Travel Made Simple',
+                    context.tr.appSplashSubtitle,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,

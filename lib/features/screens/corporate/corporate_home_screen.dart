@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/goods_model.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../repositories/auth_repository.dart';
 import '../../../repositories/goods_repository.dart';
 import '../../../core/error/result.dart';
@@ -340,7 +341,7 @@ class _CorporateHomeScreenState extends State<CorporateHomeScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -417,11 +418,7 @@ class _CorporateHomeScreenState extends State<CorporateHomeScreen> {
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppGradients.primaryBlue,
           ),
         ),
         foregroundColor: Colors.white,
@@ -581,13 +578,13 @@ class _CorporateHomeScreenState extends State<CorporateHomeScreen> {
                                           _applyFilters();
                                         }
                                       },
-                                      selectedColor: const Color(0xFF1E293B),
+                                      selectedColor: AppColors.primary,
                                       backgroundColor: Colors.white,
                                       checkmarkColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
                                         side: BorderSide(
-                                          color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                                          color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
                                         ),
                                       ),
                                     ),

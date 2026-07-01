@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -23,11 +24,15 @@ class LiveTrackingScreen extends StatefulWidget {
   State<LiveTrackingScreen> createState() => _LiveTrackingScreenState();
 }
 
-class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
+class _LiveTrackingScreenState extends State<LiveTrackingScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   Timer? _pollingTimer;
 
   LatLng? _truckPosition;
+  AnimationController? _movementController;
+  Animation<double>? _movementAnimation;
+  LatLng? _animatedTruckPosition;
+  double _animatedBearing = 0.0;
   String _tripStatus = 'scheduled';
   String? _departedAt;
   String? _scheduledDeparture;
@@ -179,6 +184,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   @override
   void initState() {
     super.initState();
+    _movementController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
     _loadInitialData();
     _loadRoutePath();
     _subscribeToRealtime();
@@ -187,6 +196,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _movementController?.dispose();
     super.dispose();
   }
 
@@ -245,6 +255,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               (lat as num).toDouble(),
               (lng as num).toDouble(),
             );
+            _animatedTruckPosition = _truckPosition;
           }
           _isLoading = false;
         });
@@ -274,6 +285,121 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
         });
       }
     }
+  }
+
+  double _calculateDistance(LatLng p1, LatLng p2) {
+    const double r = 6371000; // Earth's radius in meters
+    final lat1 = p1.latitude * math.pi / 180;
+    final lat2 = p2.latitude * math.pi / 180;
+    final dLat = (p2.latitude - p1.latitude) * math.pi / 180;
+    final dLon = (p2.longitude - p1.longitude) * math.pi / 180;
+
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1) * math.cos(lat2) *
+        math.sin(dLon / 2) * math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return r * c;
+  }
+
+  int _findClosestRouteIndex(LatLng point) {
+    if (_routePoints.isEmpty) return -1;
+    int closestIdx = 0;
+    double minDistance = double.maxFinite;
+    for (int i = 0; i < _routePoints.length; i++) {
+      final dist = _calculateDistance(point, _routePoints[i]);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIdx = i;
+      }
+    }
+    return closestIdx;
+  }
+
+  double _calculateBearing(LatLng start, LatLng end) {
+    final lat1 = start.latitude * math.pi / 180;
+    final lon1 = start.longitude * math.pi / 180;
+    final lat2 = end.latitude * math.pi / 180;
+    final lon2 = end.longitude * math.pi / 180;
+
+    final dLon = lon2 - lon1;
+
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+
+    final radians = math.atan2(y, x);
+    return (radians * 180 / math.pi + 360) % 360;
+  }
+
+  void _animateTruckMovement(LatLng start, LatLng end) {
+    if (!mounted) return;
+    _movementController?.stop();
+    _movementController?.reset();
+
+    final startIdx = _findClosestRouteIndex(start);
+    final endIdx = _findClosestRouteIndex(end);
+
+    List<LatLng> animPath = [];
+    if (startIdx != -1 && endIdx != -1 && startIdx < endIdx && (endIdx - startIdx) < 100) {
+      animPath = _routePoints.sublist(startIdx, endIdx + 1);
+    }
+
+    List<double> cumulativeDistances = [];
+    double totalPathDistance = 0.0;
+    if (animPath.isNotEmpty) {
+      cumulativeDistances.add(0.0);
+      for (int i = 0; i < animPath.length - 1; i++) {
+        totalPathDistance += _calculateDistance(animPath[i], animPath[i + 1]);
+        cumulativeDistances.add(totalPathDistance);
+      }
+    }
+
+    _movementAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _movementController!, curve: Curves.easeInOut),
+    )..addListener(() {
+        if (!mounted) return;
+        final t = _movementAnimation!.value;
+        LatLng currentPos;
+        double currentBearing = _animatedBearing;
+
+        if (animPath.isNotEmpty && totalPathDistance > 0) {
+          final targetDist = totalPathDistance * t;
+          int activeSegment = 0;
+          for (int i = 0; i < animPath.length - 1; i++) {
+            if (targetDist >= cumulativeDistances[i] && targetDist <= cumulativeDistances[i + 1]) {
+              activeSegment = i;
+              break;
+            }
+          }
+          final pA = animPath[activeSegment];
+          final pB = animPath[activeSegment + 1];
+          final segDist = cumulativeDistances[activeSegment + 1] - cumulativeDistances[activeSegment];
+          final segT = segDist > 0 ? (targetDist - cumulativeDistances[activeSegment]) / segDist : 0.0;
+
+          currentPos = LatLng(
+            pA.latitude + (pB.latitude - pA.latitude) * segT,
+            pA.longitude + (pB.longitude - pA.longitude) * segT,
+          );
+          currentBearing = _calculateBearing(pA, pB);
+        } else {
+          currentPos = LatLng(
+            start.latitude + (end.latitude - start.latitude) * t,
+            start.longitude + (end.longitude - start.longitude) * t,
+          );
+          currentBearing = _calculateBearing(start, end);
+        }
+
+        setState(() {
+          _animatedTruckPosition = currentPos;
+          _animatedBearing = currentBearing;
+        });
+
+        if (_followTruck && _mapReady) {
+          _mapController.move(_animatedTruckPosition!, _mapController.camera.zoom);
+        }
+      });
+
+    _movementController?.forward();
   }
 
   void _subscribeToRealtime() {
@@ -320,10 +446,18 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             _scheduledDeparture = schedule?['departure_time'] as String? ?? _scheduledDeparture;
             _scheduledArrival = schedule?['arrival_time'] as String? ?? _scheduledArrival;
             if (lat != null && lng != null) {
-              _truckPosition = LatLng(
+              final newPos = LatLng(
                 (lat as num).toDouble(),
                 (lng as num).toDouble(),
               );
+              if (_truckPosition != newPos) {
+                if (_truckPosition != null) {
+                  _animateTruckMovement(_truckPosition!, newPos);
+                } else {
+                  _animatedTruckPosition = newPos;
+                }
+                _truckPosition = newPos;
+              }
             }
           });
 
@@ -334,8 +468,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           }
 
           // Auto-follow truck on map if ready
-          if (_truckPosition != null && _followTruck && _mapReady) {
-            _mapController.move(_truckPosition!, _mapController.camera.zoom);
+          if ((_animatedTruckPosition ?? _truckPosition) != null && _followTruck && _mapReady) {
+            _mapController.move(_animatedTruckPosition ?? _truckPosition!, _mapController.camera.zoom);
           }
         }
       } catch (e) {
@@ -471,7 +605,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               context.tr.liveTrackingAppBar,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
               ),
             ),
           ],
@@ -611,11 +745,12 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: _truckPosition!,
+                            point: _animatedTruckPosition ?? _truckPosition!,
                             width: 60,
                             height: 60,
                             child: _TruckMarker(
                               isMoving: _tripStatus == 'in_progress',
+                              bearing: _animatedBearing,
                             ),
                           ),
                         ],
@@ -656,7 +791,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -753,7 +888,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
 class _TruckMarker extends StatefulWidget {
   final bool isMoving;
-  const _TruckMarker({required this.isMoving});
+  final double bearing;
+  const _TruckMarker({required this.isMoving, required this.bearing});
 
   @override
   State<_TruckMarker> createState() => _TruckMarkerState();
@@ -786,7 +922,10 @@ class _TruckMarkerState extends State<_TruckMarker>
       animation: _pulseAnim,
       builder: (_, child) => Transform.scale(
         scale: widget.isMoving ? _pulseAnim.value : 1.0,
-        child: child,
+        child: Transform.rotate(
+          angle: widget.bearing * math.pi / 180 + math.pi / 2, // 90 deg offset for left-facing shipping icon
+          child: child,
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -800,7 +939,7 @@ class _TruckMarkerState extends State<_TruckMarker>
                   (widget.isMoving
                           ? const Color(0xFF10B981)
                           : const Color(0xFF1A73E8))
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
               blurRadius: 12,
               spreadRadius: 2,
             ),
@@ -870,7 +1009,7 @@ class _StatusOverlayCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -881,7 +1020,7 @@ class _StatusOverlayCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -992,7 +1131,7 @@ class _BottomInfoCard extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -1268,10 +1407,10 @@ class _IncidentAlertBannerState extends State<_IncidentAlertBanner> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: primaryColor.withOpacity(0.3), width: 1.5),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.3), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -1306,7 +1445,7 @@ class _IncidentAlertBannerState extends State<_IncidentAlertBanner> {
                             _formatTimestamp(createdAt),
                             style: TextStyle(
                               fontSize: 11,
-                              color: primaryColor.withOpacity(0.7),
+                              color: primaryColor.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -1455,7 +1594,7 @@ class _PulsingIconState extends State<_PulsingIcon>
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: widget.color.withOpacity(0.15),
+          color: widget.color.withValues(alpha: 0.15),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -1511,7 +1650,7 @@ class _LocatingTruckChipState extends State<_LocatingTruckChip>
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1A73E8).withOpacity(0.3),
+              color: const Color(0xFF1A73E8).withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

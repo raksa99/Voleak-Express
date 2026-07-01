@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ManagerSchedulesScreen extends StatefulWidget {
   final String operatorId;
@@ -443,7 +444,7 @@ class _ManagerSchedulesScreenState extends State<ManagerSchedulesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_schedules',
         onPressed: () => _showScheduleForm(),
-        backgroundColor: const Color(0xFF9E7E38),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: Text(

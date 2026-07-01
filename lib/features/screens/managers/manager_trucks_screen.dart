@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ManagerTrucksScreen extends StatefulWidget {
   final String operatorId;
@@ -103,7 +104,7 @@ class _ManagerTrucksScreenState extends State<ManagerTrucksScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_trucks',
         onPressed: () => _showTruckForm(),
-        backgroundColor: const Color(0xFF9E7E38),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: Text(
@@ -481,7 +482,7 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
               icon: const Icon(Icons.camera_alt_rounded),
               label: Text(context.tr.takePhoto),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9E7E38),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -637,7 +638,7 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
                     color: const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF9E7E38).withOpacity(0.3),
+                      color: AppColors.primary.withOpacity(0.3),
                       style: BorderStyle.solid,
                       width: 1.5,
                     ),
@@ -716,12 +717,12 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF9E7E38).withOpacity(0.1),
+                                      color: AppColors.primary.withOpacity(0.1),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
                                       Icons.camera_alt_rounded,
-                                      color: Color(0xFF9E7E38),
+                                      color: AppColors.primary,
                                       size: 28,
                                     ),
                                   ),
@@ -731,7 +732,7 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
                                     style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF9E7E38),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -779,7 +780,7 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9E7E38),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

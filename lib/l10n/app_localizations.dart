@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @bookingPassenger.
   ///
   /// In en, this message translates to:
-  /// **'Passenger'**
+  /// **'Cargo / Client'**
   String get bookingPassenger;
 
   /// No description provided for @bookingUseSavedInfo.
@@ -2074,7 +2074,7 @@ abstract class AppLocalizations {
   /// No description provided for @driverHomeStatPassengers.
   ///
   /// In en, this message translates to:
-  /// **'Passengers'**
+  /// **'Shipments'**
   String get driverHomeStatPassengers;
 
   /// No description provided for @driverHomeFailedLoad.
@@ -2176,19 +2176,19 @@ abstract class AppLocalizations {
   /// No description provided for @driverTripPassengersTitle.
   ///
   /// In en, this message translates to:
-  /// **'Passengers'**
+  /// **'Cargo Shipments'**
   String get driverTripPassengersTitle;
 
   /// No description provided for @driverTripPassengerCount.
   ///
   /// In en, this message translates to:
-  /// **'{boarded}/{total} boarded'**
+  /// **'{boarded}/{total} loaded'**
   String driverTripPassengerCount(int boarded, int total);
 
   /// No description provided for @driverTripNoPassengers.
   ///
   /// In en, this message translates to:
-  /// **'No passengers booked yet'**
+  /// **'No cargo shipments booked yet'**
   String get driverTripNoPassengers;
 
   /// No description provided for @driverTripSeatInfo.
@@ -2200,7 +2200,7 @@ abstract class AppLocalizations {
   /// No description provided for @driverTripUnknownPassenger.
   ///
   /// In en, this message translates to:
-  /// **'Unknown Passenger'**
+  /// **'Unknown Client'**
   String get driverTripUnknownPassenger;
 
   /// No description provided for @driverTripStartTripBtn.
@@ -2230,7 +2230,7 @@ abstract class AppLocalizations {
   /// No description provided for @driverTripStartDialogMessage.
   ///
   /// In en, this message translates to:
-  /// **'Are you ready to depart? This will notify all passengers.'**
+  /// **'Are you ready to depart? This will notify the corporate clients.'**
   String get driverTripStartDialogMessage;
 
   /// No description provided for @driverTripStartNowLabel.
@@ -2272,7 +2272,7 @@ abstract class AppLocalizations {
   /// No description provided for @driverTripTruckNotFull.
   ///
   /// In en, this message translates to:
-  /// **'Truck is not full ({boarded}/{capacity}). Waiting for Conductor permission.'**
+  /// **'Truck is not full ({boarded}/{capacity}). Waiting for Operator permission.'**
   String driverTripTruckNotFull(int boarded, int capacity);
 
   /// No description provided for @driverTripStartedSnack.
@@ -2614,7 +2614,7 @@ abstract class AppLocalizations {
   /// No description provided for @activeTripEndDialogMessage.
   ///
   /// In en, this message translates to:
-  /// **'Make sure all passengers have boarded. This cannot be undone.'**
+  /// **'Make sure all cargo is loaded. This cannot be undone.'**
   String get activeTripEndDialogMessage;
 
   /// No description provided for @activeTripEndTripLabel.
@@ -3010,13 +3010,13 @@ abstract class AppLocalizations {
   /// No description provided for @conductorPassNoPassengers.
   ///
   /// In en, this message translates to:
-  /// **'No passengers booked'**
+  /// **'No cargo booked'**
   String get conductorPassNoPassengers;
 
   /// No description provided for @conductorPassNoFilterPassengers.
   ///
   /// In en, this message translates to:
-  /// **'No {status} passengers'**
+  /// **'No {status} cargo'**
   String conductorPassNoFilterPassengers(String status);
 
   /// No description provided for @conductorPassMarkedBoarded.
@@ -3712,7 +3712,7 @@ abstract class AppLocalizations {
   /// No description provided for @perSeat.
   ///
   /// In en, this message translates to:
-  /// **'per seat'**
+  /// **'per shipment'**
   String get perSeat;
 
   /// No description provided for @addSchedule.
@@ -3766,7 +3766,7 @@ abstract class AppLocalizations {
   /// No description provided for @pricePerSeat.
   ///
   /// In en, this message translates to:
-  /// **'Price per seat (\$)'**
+  /// **'Price per shipment (\$)'**
   String get pricePerSeat;
 
   /// No description provided for @priceHint.
@@ -4042,7 +4042,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengers.
   ///
   /// In en, this message translates to:
-  /// **'Passengers'**
+  /// **'Cargo'**
   String get passengers;
 
   /// No description provided for @suspendOperatorConfirm.
@@ -4362,6 +4362,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Card ID photo is required'**
   String get cardIdRequired;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
 }
 
 class _AppLocalizationsDelegate

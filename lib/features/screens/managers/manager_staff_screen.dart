@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ManagerStaffScreen extends StatefulWidget {
   final String operatorId;
@@ -101,7 +102,7 @@ class _ManagerStaffScreenState extends State<ManagerStaffScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_staff',
         onPressed: _showAddStaffForm,
-        backgroundColor: const Color(0xFF9E7E38),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_rounded),
         label: Text(
@@ -174,7 +175,7 @@ class _StaffCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppBar(
-              backgroundColor: const Color(0xFF9E7E38),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               title: Text(
                 '$name - ${context.tr.cardIdPhoto}',
@@ -198,7 +199,7 @@ class _StaffCard extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24.0),
-                      child: CircularProgressIndicator(color: Color(0xFF9E7E38)),
+                      child: CircularProgressIndicator(color: AppColors.primary),
                     ),
                   );
                 },
@@ -403,10 +404,10 @@ class _StaffCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF9E7E38).withOpacity(0.1),
+                              color: AppColors.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: const Color(0xFF9E7E38).withOpacity(0.3),
+                                color: AppColors.primary.withOpacity(0.3),
                               ),
                             ),
                             child: Row(
@@ -415,7 +416,7 @@ class _StaffCard extends StatelessWidget {
                                 const Icon(
                                   Icons.badge_rounded,
                                   size: 12,
-                                  color: Color(0xFF9E7E38),
+                                  color: AppColors.primary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -423,7 +424,7 @@ class _StaffCard extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF9E7E38),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ],
@@ -573,7 +574,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
               icon: const Icon(Icons.camera_alt_rounded),
               label: Text(context.tr.takePhoto),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9E7E38),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -753,7 +754,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                     border: Border.all(
                       color: _selectedCardIdBytes != null
                           ? const Color(0xFF059669)
-                          : const Color(0xFF9E7E38).withOpacity(0.3),
+                          : AppColors.primary.withOpacity(0.3),
                       style: BorderStyle.solid,
                       width: 1.5,
                     ),
@@ -799,12 +800,12 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF9E7E38).withOpacity(0.1),
+                                  color: AppColors.primary.withOpacity(0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
                                   Icons.credit_card_rounded,
-                                  color: Color(0xFF9E7E38),
+                                  color: AppColors.primary,
                                   size: 28,
                                 ),
                               ),
@@ -814,7 +815,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF9E7E38),
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(height: 4),

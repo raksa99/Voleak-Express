@@ -467,7 +467,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookingTruck => 'Truck';
 
   @override
-  String get bookingPassenger => 'Passenger';
+  String get bookingPassenger => 'Cargo / Client';
 
   @override
   String get bookingUseSavedInfo => 'Use saved info';
@@ -1111,7 +1111,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get driverHomeStatCompleted => 'Completed';
 
   @override
-  String get driverHomeStatPassengers => 'Passengers';
+  String get driverHomeStatPassengers => 'Shipments';
 
   @override
   String get driverHomeFailedLoad => 'Failed to load data';
@@ -1166,15 +1166,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get driverTripGpsActive => 'GPS Tracking Active';
 
   @override
-  String get driverTripPassengersTitle => 'Passengers';
+  String get driverTripPassengersTitle => 'Cargo Shipments';
 
   @override
   String driverTripPassengerCount(int boarded, int total) {
-    return '$boarded/$total boarded';
+    return '$boarded/$total loaded';
   }
 
   @override
-  String get driverTripNoPassengers => 'No passengers booked yet';
+  String get driverTripNoPassengers => 'No cargo shipments booked yet';
 
   @override
   String driverTripSeatInfo(String number, String phone) {
@@ -1182,7 +1182,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get driverTripUnknownPassenger => 'Unknown Passenger';
+  String get driverTripUnknownPassenger => 'Unknown Client';
 
   @override
   String get driverTripStartTripBtn => 'Start Trip';
@@ -1200,7 +1200,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get driverTripStartDialogMessage =>
-      'Are you ready to depart? This will notify all passengers.';
+      'Are you ready to depart? This will notify the corporate clients.';
 
   @override
   String get driverTripStartNowLabel => 'Start Now';
@@ -1225,7 +1225,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String driverTripTruckNotFull(int boarded, int capacity) {
-    return 'Truck is not full ($boarded/$capacity). Waiting for Conductor permission.';
+    return 'Truck is not full ($boarded/$capacity). Waiting for Operator permission.';
   }
 
   @override
@@ -1426,7 +1426,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activeTripEndDialogMessage =>
-      'Make sure all passengers have boarded. This cannot be undone.';
+      'Make sure all cargo is loaded. This cannot be undone.';
 
   @override
   String get activeTripEndTripLabel => 'End trip';
@@ -1670,11 +1670,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get conductorPassNoPassengers => 'No passengers booked';
+  String get conductorPassNoPassengers => 'No cargo booked';
 
   @override
   String conductorPassNoFilterPassengers(String status) {
-    return 'No $status passengers';
+    return 'No $status cargo';
   }
 
   @override
@@ -2053,7 +2053,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arrivalLabel => 'Arrival';
 
   @override
-  String get perSeat => 'per seat';
+  String get perSeat => 'per shipment';
 
   @override
   String get addSchedule => 'Add Schedule';
@@ -2080,7 +2080,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noConductor => 'No conductor';
 
   @override
-  String get pricePerSeat => 'Price per seat (\$)';
+  String get pricePerSeat => 'Price per shipment (\$)';
 
   @override
   String get priceHint => 'e.g. 12.00';
@@ -2224,7 +2224,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usersSection => 'Users';
 
   @override
-  String get passengers => 'Passengers';
+  String get passengers => 'Cargo';
 
   @override
   String get suspendOperatorConfirm =>
@@ -2401,4 +2401,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardIdRequired => 'Card ID photo is required';
+
+  @override
+  String get settings => 'Settings';
 }

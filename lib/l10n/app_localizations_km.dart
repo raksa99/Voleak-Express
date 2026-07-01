@@ -12,7 +12,8 @@ class AppLocalizationsKm extends AppLocalizations {
   String get appTitle => 'Voleak Express';
 
   @override
-  String get appSplashSubtitle => 'Premium Travel Made Simple';
+  String get appSplashSubtitle =>
+      'សេវាកម្មដឹកជញ្ជូនលំដាប់ខ្ពស់ប្រកបដោយភាពងាយស្រួល';
 
   @override
   String get signInButton => 'ចូល';
@@ -468,7 +469,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get bookingTruck => 'ឡានដឹកទំនិញ';
 
   @override
-  String get bookingPassenger => 'អ្នកដំណើរ';
+  String get bookingPassenger => 'ទំនិញ / ក្រុមហ៊ុនផ្ញើ';
 
   @override
   String get bookingUseSavedInfo => 'ប្រើព័ត៌មានដែលបានរក្សាទុក';
@@ -1113,7 +1114,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get driverHomeStatCompleted => 'បានបញ្ចប់';
 
   @override
-  String get driverHomeStatPassengers => 'អ្នកដំណើរ';
+  String get driverHomeStatPassengers => 'ការដឹកជញ្ជូន';
 
   @override
   String get driverHomeFailedLoad => 'បរាជ័យក្នុងការផ្ទុកទិន្នន័យ';
@@ -1168,15 +1169,15 @@ class AppLocalizationsKm extends AppLocalizations {
   String get driverTripGpsActive => 'GPS កំពុងដំណើរការ';
 
   @override
-  String get driverTripPassengersTitle => 'អ្នកដំណើរ';
+  String get driverTripPassengersTitle => 'ទំនិញដឹកជញ្ជូន';
 
   @override
   String driverTripPassengerCount(int boarded, int total) {
-    return '$boarded/$total បានឡើងឡាន';
+    return 'បានផ្ទុក $boarded/$total';
   }
 
   @override
-  String get driverTripNoPassengers => 'មិនទាន់មានអ្នកដំណើរកក់ទេ';
+  String get driverTripNoPassengers => 'មិនទាន់មានទំនិញផ្ទុកឡើយ';
 
   @override
   String driverTripSeatInfo(String number, String phone) {
@@ -1184,7 +1185,7 @@ class AppLocalizationsKm extends AppLocalizations {
   }
 
   @override
-  String get driverTripUnknownPassenger => 'អ្នកដំណើរមិនស្គាល់';
+  String get driverTripUnknownPassenger => 'មិនស្គាល់អតិថិជន';
 
   @override
   String get driverTripStartTripBtn => 'ចាប់ផ្តើមដំណើរ';
@@ -1202,7 +1203,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get driverTripStartDialogMessage =>
-      'តើអ្នកត្រៀមចេញដំណើរហើយឬនៅ? នេះនឹងជូនដំណឹងដល់អ្នកដំណើរទាំងអស់។';
+      'តើអ្នកចង់ចាប់ផ្តើមធ្វើដំណើរឬទេ? វានឹងជូនដំណឹងទៅកាន់ក្រុមហ៊ុនផ្ញើទំនិញ។';
 
   @override
   String get driverTripStartNowLabel => 'ចាប់ផ្តើមឥឡូវនេះ';
@@ -1227,7 +1228,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String driverTripTruckNotFull(int boarded, int capacity) {
-    return 'ឡានមិនទាន់ពេញ ($boarded/$capacity)។ កំពុងរង់ចាំការអនុញ្ញាតពីអ្នកដឹកអ្នកដំណើរ។';
+    return 'ឡានមិនទាន់ពេញ ($boarded/$capacity)។ កំពុងរង់ចាំការអនុញ្ញាតពីប្រតិបត្តិករ។';
   }
 
   @override
@@ -1429,7 +1430,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get activeTripEndDialogMessage =>
-      'សូមប្រាកដថាអ្នកដំណើរទាំងអស់បានឡើងឡានហើយ។ នេះមិនអាចត្រឡប់វិញបានទេ។';
+      'សូមប្រាកដថាទំនិញទាំងអស់ត្រូវបានផ្ទុកឡើងរួចរាល់។ ការងារនេះមិនអាចត្រឡប់ក្រោយវិញបានទេ។';
 
   @override
   String get activeTripEndTripLabel => 'បញ្ចប់ដំណើរ';
@@ -2056,7 +2057,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get arrivalLabel => 'ការមកដល់';
 
   @override
-  String get perSeat => 'ក្នុងមួយកៅអី';
+  String get perSeat => 'ក្នុងមួយការផ្ញើ';
 
   @override
   String get addSchedule => 'បន្ថែមកាលវិភាគ';
@@ -2083,7 +2084,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get noConductor => 'គ្មានអ្នកដឹកអ្នកដំណើរ';
 
   @override
-  String get pricePerSeat => 'តម្លៃក្នុងមួយកៅអី (\$)';
+  String get pricePerSeat => 'តម្លៃក្នុងមួយការផ្ញើ (\$)';
 
   @override
   String get priceHint => 'ឧ. 12.00';
@@ -2227,7 +2228,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get usersSection => 'អ្នកប្រើប្រាស់';
 
   @override
-  String get passengers => 'អ្នកដំណើរ';
+  String get passengers => 'ទំនិញ';
 
   @override
   String get suspendOperatorConfirm =>
@@ -2404,4 +2405,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get cardIdRequired => 'តម្រូវឱ្យមានអត្តសញ្ញាណប័ណ្ណ';
+
+  @override
+  String get settings => 'ការកំណត់';
 }

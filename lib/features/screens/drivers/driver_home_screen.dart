@@ -529,7 +529,7 @@ class _StatsRowState extends State<_StatsRow> {
         StatCard(
           title: context.tr.driverHomeStatPassengers,
           value: '$_totalPassengers',
-          icon: Icons.people_rounded,
+          icon: Icons.inventory_2_rounded,
           color: AppColors.warning,
         ),
       ],

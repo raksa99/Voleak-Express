@@ -230,7 +230,7 @@
   "bookingDate": "Date",
   "bookingSeats": "Seats",
   "bookingTruck": "Truck",
-  "bookingPassenger": "Passenger",
+  "bookingPassenger": "Cargo / Client",
   "bookingUseSavedInfo": "Use saved info",
   "bookingEnterFullName": "Enter your full name",
   "bookingAgeLabel": "Age",
@@ -643,7 +643,7 @@
   "driverHomeQuickStats": "Quick Stats",
   "driverHomeStatTotalTrips": "Total Trips",
   "driverHomeStatCompleted": "Completed",
-  "driverHomeStatPassengers": "Passengers",
+  "driverHomeStatPassengers": "Shipments",
   "driverHomeFailedLoad": "Failed to load data",
   "driverHomeRetry": "Retry",
   "driverTripAppBarTitle": "Trip Management",
@@ -674,8 +674,8 @@
   },
   "driverTripTapStart": "Tap \"Start Trip\" when ready",
   "driverTripGpsActive": "GPS Tracking Active",
-  "driverTripPassengersTitle": "Passengers",
-  "driverTripPassengerCount": "{boarded}/{total} boarded",
+  "driverTripPassengersTitle": "Cargo Shipments",
+  "driverTripPassengerCount": "{boarded}/{total} loaded",
   "@driverTripPassengerCount": {
     "placeholders": {
       "boarded": {
@@ -686,7 +686,7 @@
       }
     }
   },
-  "driverTripNoPassengers": "No passengers booked yet",
+  "driverTripNoPassengers": "No cargo shipments booked yet",
   "driverTripSeatInfo": "Seat {number} • {phone}",
   "@driverTripSeatInfo": {
     "placeholders": {
@@ -698,7 +698,7 @@
       }
     }
   },
-  "driverTripUnknownPassenger": "Unknown Passenger",
+  "driverTripUnknownPassenger": "Unknown Client",
   "driverTripStartTripBtn": "Start Trip",
   "driverTripEndTripArrivedBtn": "End Trip (Arrived)",
   "driverTripEndTripCountdown": "End Trip (ready in {countdown})",
@@ -710,7 +710,7 @@
     }
   },
   "driverTripStartDialogTitle": "Start Trip",
-  "driverTripStartDialogMessage": "Are you ready to depart? This will notify all passengers.",
+  "driverTripStartDialogMessage": "Are you ready to depart? This will notify the corporate clients.",
   "driverTripStartNowLabel": "Start Now",
   "driverTripEndDialogTitle": "End Trip",
   "driverTripEndDialogMessageDelay": "Trip was delayed by {delay} min due to incidents. Confirm arrival?",
@@ -724,7 +724,7 @@
   "driverTripEndDialogMessageNormal": "Confirm you have arrived at the destination?",
   "driverTripEndTripLabel": "End Trip",
   "driverTripCancel": "Cancel",
-  "driverTripTruckNotFull": "Truck is not full ({boarded}/{capacity}). Waiting for Conductor permission.",
+  "driverTripTruckNotFull": "Truck is not full ({boarded}/{capacity}). Waiting for Operator permission.",
   "@driverTripTruckNotFull": {
     "placeholders": {
       "boarded": {
@@ -880,7 +880,7 @@
   "activeTripCouldNotStart": "Could not start trip. Try again.",
   "activeTripCouldNotEnd": "Could not end trip. Try again.",
   "activeTripEndDialogTitle": "End this trip?",
-  "activeTripEndDialogMessage": "Make sure all passengers have boarded. This cannot be undone.",
+  "activeTripEndDialogMessage": "Make sure all cargo is loaded. This cannot be undone.",
   "activeTripEndTripLabel": "End trip",
   "activeTripCompletedSnack": "Trip completed. Great job!",
   "activeTripTripStatus": "Trip Status",
@@ -1118,8 +1118,8 @@
       }
     }
   },
-  "conductorPassNoPassengers": "No passengers booked",
-  "conductorPassNoFilterPassengers": "No {status} passengers",
+  "conductorPassNoPassengers": "No cargo booked",
+  "conductorPassNoFilterPassengers": "No {status} cargo",
   "@conductorPassNoFilterPassengers": {
     "placeholders": {
       "status": {
@@ -1325,7 +1325,7 @@
   "cancelled": "Cancelled",
   "departureLabel": "Departure",
   "arrivalLabel": "Arrival",
-  "perSeat": "per seat",
+  "perSeat": "per shipment",
   "addSchedule": "Add Schedule",
   "editSchedule": "Edit Schedule",
   "newSchedule": "New Schedule",
@@ -1334,7 +1334,7 @@
   "driverDropdown": "Driver",
   "conductorOptional": "Conductor (optional)",
   "noConductor": "No conductor",
-  "pricePerSeat": "Price per seat ($)",
+  "pricePerSeat": "Price per shipment ($)",
   "priceHint": "e.g. 12.00",
   "operatingDays": "Operating Days",
   "pleaseSelectRoute": "Please select a route",
@@ -1394,7 +1394,7 @@
   "todaysTrips": "Today's Trips",
   "operatorsSection": "Operators",
   "usersSection": "Users",
-  "passengers": "Passengers",
+  "passengers": "Cargo",
   "suspendOperatorConfirm": "Suspending this operator will prevent their trucks from appearing in searches. Continue?",
   "reactivateOperatorConfirm": "This will reactivate the operator and their services. Continue?",
   "operatorActivated": "Operator activated ✅",
@@ -1499,5 +1499,6 @@
   "khmer": "ភាសាខ្មែរ",
   "cardIdPhoto": "Card ID Photo",
   "insertCardId": "Insert Card ID",
-  "cardIdRequired": "Card ID photo is required"
+  "cardIdRequired": "Card ID photo is required",
+  "settings": "Settings"
 }

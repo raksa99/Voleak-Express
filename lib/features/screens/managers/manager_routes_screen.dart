@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ManagerRoutesScreen extends StatefulWidget {
   final String operatorId;
@@ -153,7 +154,7 @@ class _ManagerRoutesScreenState extends State<ManagerRoutesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_routes',
         onPressed: () => _showRouteForm(),
-        backgroundColor: const Color(0xFF9E7E38),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: Text(

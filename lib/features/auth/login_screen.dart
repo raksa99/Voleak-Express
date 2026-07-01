@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/error/result.dart';
 import '../../core/theme/app_theme.dart';
@@ -469,11 +470,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   icon: const Icon(Icons.local_shipping_rounded, size: 16),
                                   label: const Text('Driver', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFF59E0B),
+                                    backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -484,11 +485,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   icon: const Icon(Icons.business_rounded, size: 16),
                                   label: const Text('Corporate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF6366F1),
+                                    backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -503,11 +504,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   icon: const Icon(Icons.analytics_rounded, size: 16),
                                   label: const Text('Manager', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF06B6D4),
+                                    backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -518,11 +519,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   icon: const Icon(Icons.admin_panel_settings_rounded, size: 16),
                                   label: const Text('Admin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
+                                    backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -560,6 +561,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            final url = Uri.parse('https://my-portfolio-em-raksa.vercel.app');
+                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                              debugPrint('Could not launch $url');
+                            }
+                          },
+                          icon: const Icon(Icons.person_pin_rounded, color: Color(0xFFC5A85C), size: 18),
+                          label: const Text(
+                            'Developed by Em Raksa',
+                            style: TextStyle(
+                              color: Color(0xFFC5A85C),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),

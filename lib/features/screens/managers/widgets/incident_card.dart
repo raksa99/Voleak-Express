@@ -32,7 +32,7 @@ class AllClearCard extends StatelessWidget {
             ),
             child: const Icon(
               Icons.check_circle_rounded,
-              color: Color(0xFF9E7E38),
+              color: Color(0xFF10B981),
               size: 20,
             ),
           ),

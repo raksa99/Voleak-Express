@@ -12,6 +12,7 @@ import 'manager_trucks_screen.dart';
 import 'manager_routes_screen.dart';
 import 'manager_schedules_screen.dart';
 import 'manager_staff_screen.dart';
+import 'manager_profile_screen.dart';
 import 'widgets/incident_card.dart';
 import 'widgets/manager_card.dart';
 import 'widgets/quick_action.dart';
@@ -33,7 +34,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
   bool _isLoading = true;
   String? _operatorId;
 
-  static const _primaryColor = Color(0xFF9E7E38);
+  static const _primaryColor = AppColors.primary;
 
   @override
   void initState() {
@@ -210,6 +211,10 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
       ManagerTrucksScreen(operatorId: _operatorId ?? ''),
       ManagerSchedulesScreen(operatorId: _operatorId ?? ''),
       ManagerStaffScreen(operatorId: _operatorId ?? ''),
+      ManagerProfileScreen(
+        operatorInfo: _operatorInfo,
+        onRefreshOperator: _loadData,
+      ),
     ];
 
     return Scaffold(
@@ -340,6 +345,11 @@ class _ManagerNavBar extends StatelessWidget {
       activeIcon: Icons.people_rounded,
       label: 'Staff',
     ),
+    _NavItem(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+    ),
   ];
 
   const _ManagerNavBar({
@@ -463,6 +473,8 @@ class _NavBarItem extends StatelessWidget {
         return context.tr.navSchedules;
       case 'Staff':
         return context.tr.navStaff;
+      case 'Profile':
+        return context.tr.navProfile;
       default:
         return item.label;
     }
@@ -470,6 +482,7 @@ class _NavBarItem extends StatelessWidget {
 }
 
 class _DashboardTab extends StatelessWidget {
+  static const _primaryColor = AppColors.primary;
   final Map<String, int> stats;
   final Map<String, dynamic>? operatorInfo;
   final bool isLoading;
@@ -514,10 +527,10 @@ class _DashboardTab extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatCard(
-                    label: context.tr.statBookings,
+                    label: context.tr.driverHomeStatPassengers,
                     value: '${stats['today_bookings'] ?? 0}',
-                    icon: Icons.confirmation_number_rounded,
-                    color: AppColors.primary,
+                    icon: Icons.inventory_2_rounded,
+                    color: const Color(0xFF4F46E5),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -546,25 +559,25 @@ class _DashboardTab extends StatelessWidget {
                   label: context.tr.statActiveTrucks,
                   value: '${stats['buses'] ?? 0}',
                   icon: Icons.local_shipping_rounded,
-                  color: const Color(0xFF9E7E38),
+                  color: _primaryColor,
                 ),
                 _StatCard(
                   label: context.tr.statActiveRoutes,
                   value: '${stats['routes'] ?? 0}',
                   icon: Icons.route_rounded,
-                  color: const Color(0xFF9E7E38),
+                  color: _primaryColor,
                 ),
                 _StatCard(
                   label: context.tr.statSchedules,
                   value: '${stats['schedules'] ?? 0}',
                   icon: Icons.schedule_rounded,
-                  color: const Color(0xFF9E7E38),
+                  color: _primaryColor,
                 ),
                 _StatCard(
                   label: context.tr.statStaff,
                   value: '${stats['staff'] ?? 0}',
                   icon: Icons.people_rounded,
-                  color: const Color(0xFF9E7E38),
+                  color: _primaryColor,
                 ),
               ],
             ),
@@ -609,7 +622,7 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.add_road_rounded,
               label: context.tr.addNewRoute,
               subtitle: context.tr.addNewRouteSubtitle,
-              color: const Color(0xFF9E7E38),
+              color: _primaryColor,
               onTap: () => onTabSelected(1),
             ),
             const SizedBox(height: 10),
@@ -617,7 +630,7 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.local_shipping_rounded,
               label: context.tr.addNewTruck,
               subtitle: context.tr.addNewTruckSubtitle,
-              color: const Color(0xFF9E7E38),
+              color: _primaryColor,
               onTap: () => onTabSelected(2),
             ),
             const SizedBox(height: 10),
@@ -625,7 +638,7 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.person_add_rounded,
               label: context.tr.addStaffMember,
               subtitle: context.tr.addStaffMemberSubtitle,
-              color: const Color(0xFF9E7E38),
+              color: _primaryColor,
               onTap: () => onTabSelected(4),
             ),
           ],
