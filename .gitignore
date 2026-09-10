@@ -1,0 +1,13 @@
+# Node dependencies
+**/node_modules/
+**/dist/
+**/build/
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db
