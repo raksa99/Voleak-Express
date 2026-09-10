@@ -1,3 +1,10 @@
+# Environment variables
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+
 # Node dependencies
 **/node_modules/
 **/dist/
