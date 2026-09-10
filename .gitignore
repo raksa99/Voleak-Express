@@ -5,6 +5,11 @@
 **/.env
 **/.env.*
 
+# Root SQL files
+supabase_migration.sql
+supabase_schema.sql
+supabase_update_top_sports_textile.sql
+
 # Node dependencies
 **/node_modules/
 **/dist/
