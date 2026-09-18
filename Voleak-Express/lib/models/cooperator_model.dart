@@ -22,6 +22,9 @@ class CooperatorModel {
   final double totalTonnage;
   final double totalSpend;
   final String status;
+  final String sezZone;
+  final String category;
+  final String? idCardUrl;
 
   CooperatorModel({
     required this.id,
@@ -47,6 +50,9 @@ class CooperatorModel {
     this.totalTonnage = 420.5,
     this.totalSpend = 58200.0,
     this.status = 'active',
+    this.sezZone = 'Phnom Penh SEZ',
+    this.category = 'Cut & Sew (កាត់ដេរ)',
+    this.idCardUrl,
   });
 
   factory CooperatorModel.fromJson(Map<String, dynamic> json) {
@@ -55,7 +61,7 @@ class CooperatorModel {
       name: json['name'] as String? ?? json['factory_name'] as String? ?? 'Top Sports Textile (TST Group)',
       shortName: json['short_name'] as String? ?? json['shortName'] as String? ?? 'Manhattan Garments',
       code: json['code'] as String? ?? 'COP-MANHATTAN-01',
-      industry: json['industry'] as String? ?? 'Garments & Textiles',
+      industry: json['industry'] as String? ?? json['category'] as String? ?? 'Garments & Textiles',
       tier: json['tier'] as String? ?? 'VIP Platinum Partner',
       discountRate: json['discount_rate'] as String? ?? json['discountRate'] as String? ?? '15% Corporate Off',
       paymentTerms: json['payment_terms'] as String? ?? json['paymentTerms'] as String? ?? 'Net 30 Days',
@@ -74,6 +80,9 @@ class CooperatorModel {
       totalTonnage: (json['total_tonnage'] as num?)?.toDouble() ?? 420.5,
       totalSpend: (json['total_spend'] as num?)?.toDouble() ?? 58200.0,
       status: json['status'] as String? ?? 'active',
+      sezZone: json['sez_zone'] as String? ?? json['sezZone'] as String? ?? 'Phnom Penh SEZ',
+      category: json['category'] as String? ?? json['industry'] as String? ?? 'Cut & Sew (កាត់ដេរ)',
+      idCardUrl: json['id_card_url'] as String? ?? json['idCardUrl'] as String?,
     );
   }
 
@@ -85,6 +94,8 @@ class CooperatorModel {
       'short_name': shortName,
       'code': code,
       'industry': industry,
+      'category': category,
+      'sez_zone': sezZone,
       'tier': tier,
       'discount_rate': discountRate,
       'payment_terms': paymentTerms,
@@ -99,6 +110,7 @@ class CooperatorModel {
       'address': address,
       'primary_corridor': primaryCorridor,
       'logo_url': logoUrl,
+      'id_card_url': idCardUrl,
       'total_waybills': totalWaybills,
       'total_tonnage': totalTonnage,
       'total_spend': totalSpend,

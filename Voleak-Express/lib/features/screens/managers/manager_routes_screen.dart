@@ -12,8 +12,10 @@ class ManagerRoutesScreen extends StatefulWidget {
 }
 
 class _ManagerRoutesScreenState extends State<ManagerRoutesScreen> {
-  List<Map<String, dynamic>> _routes = [];
+  List<Map<String, dynamic>> _allRoutes = [];
+  List<Map<String, dynamic>> _filteredRoutes = [];
   bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -24,22 +26,51 @@ class _ManagerRoutesScreenState extends State<ManagerRoutesScreen> {
   Future<void> _loadRoutes() async {
     setState(() => _isLoading = true);
     try {
-      final data = await SupabaseConfig.client
+      dynamic data;
+      if (widget.operatorId.isNotEmpty &&
+          widget.operatorId != 'demo-operator-id' &&
+          !widget.operatorId.startsWith('all')) {
+        final scoped = await SupabaseConfig.client
+            .from('routes')
+            .select('*')
+            .eq('operator_id', widget.operatorId)
+            .order('created_at', ascending: false);
+        if (scoped.isNotEmpty) {
+          data = scoped;
+        }
+      }
+
+      data ??= await SupabaseConfig.client
           .from('routes')
-          .select(
-            'id, name, origin, destination, distance_km, duration_min, status',
-          )
-          .eq('operator_id', widget.operatorId)
-          .order('created_at', ascending: false);
+          .select('*')
+          .order('name', ascending: true);
+
       if (mounted) {
         setState(() {
-          _routes = List<Map<String, dynamic>>.from(data);
+          _allRoutes = List<Map<String, dynamic>>.from(data);
+          _filter();
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _filter() {
+    final query = _searchQuery.toLowerCase().trim();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredRoutes = List.from(_allRoutes);
+      } else {
+        _filteredRoutes = _allRoutes.where((r) {
+          final name = (r['name'] ?? '').toString().toLowerCase();
+          final origin = (r['origin'] ?? '').toString().toLowerCase();
+          final destination = (r['destination'] ?? '').toString().toLowerCase();
+          return name.contains(query) || origin.contains(query) || destination.contains(query);
+        }).toList();
+      }
+    });
   }
 
   void _showRouteForm({Map<String, dynamic>? existing}) {
@@ -127,30 +158,96 @@ class _ManagerRoutesScreenState extends State<ManagerRoutesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadRoutes,
-              child: _routes.isEmpty
-                  ? _EmptyState(
-                      icon: Icons.route_rounded,
-                      message: context.tr.noRoutesYet,
-                      subtitle: context.tr.addYourFirstRoute,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _routes.length,
-                      itemBuilder: (context, index) {
-                        final r = _routes[index];
-                        return _RouteCard(
-                          route: r,
-                          onEdit: () => _showRouteForm(existing: r),
-                          onToggle: () => _toggleStatus(r['id'], r['status']),
-                          onDelete: () => _deleteRoute(r['id']),
-                        );
-                      },
-                    ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: TextField(
+              onChanged: (val) {
+                _searchQuery = val;
+                _filter();
+              },
+              decoration: InputDecoration(
+                hintText: 'Search 32 SEZ factory corridors, destinations...',
+                prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _filter();
+                          });
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                filled: true,
+                fillColor: const Color(0xFFF1F5F9),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${_filteredRoutes.length} of ${_allRoutes.length} corridors',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Text(
+                    'Sen Sok HQ Hub',
+                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _loadRoutes,
+                    child: _filteredRoutes.isEmpty
+                        ? _EmptyState(
+                            icon: Icons.route_rounded,
+                            message: context.tr.noRoutesYet,
+                            subtitle: context.tr.addYourFirstRoute,
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredRoutes.length,
+                            itemBuilder: (context, index) {
+                              final r = _filteredRoutes[index];
+                              return _RouteCard(
+                                route: r,
+                                onEdit: () => _showRouteForm(existing: r),
+                                onToggle: () => _toggleStatus(r['id'], r['status']),
+                                onDelete: () => _deleteRoute(r['id']),
+                              );
+                            },
+                          ),
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_routes',
         onPressed: () => _showRouteForm(),
@@ -184,6 +281,9 @@ class _RouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = route['status'] == 'active';
+    final distanceKm = (route['distance_km'] as num?)?.toInt() ?? 0;
+    final durationMin = (route['duration_min'] as num?)?.toInt() ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -242,7 +342,7 @@ class _RouteCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            context.tr.distanceKmLabel((route['distance_km'] as num).toInt()),
+                            context.tr.distanceKmLabel(distanceKm),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
@@ -256,7 +356,7 @@ class _RouteCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            context.tr.durationMinLabel(route['duration_min'] as int),
+                            context.tr.durationMinLabel(durationMin),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),

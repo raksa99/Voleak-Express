@@ -58,6 +58,26 @@ class CooperatorRepository {
     }
   }
 
+  /// Fetch all Cooperators / Factory Partners from Supabase 'cooperators' table.
+  Future<Result<List<CooperatorModel>>> getCooperators() async {
+    try {
+      final data = await SupabaseConfig.client
+          .from('cooperators')
+          .select('*')
+          .order('name', ascending: true);
+
+      if (data.isNotEmpty) {
+        final list = data
+            .map((json) => CooperatorModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+        return Success(list);
+      }
+      return Success([]);
+    } catch (e) {
+      return Failure('Failed to fetch cooperators: $e');
+    }
+  }
+
   /// Update or save corporate cooperator details to Supabase.
   Future<Result<CooperatorModel>> saveCooperator(CooperatorModel cooperator) async {
     try {
@@ -70,6 +90,19 @@ class CooperatorRepository {
       return Success(CooperatorModel.fromJson(data));
     } catch (e) {
       return Failure('Failed to save cooperator profile to Supabase: $e');
+    }
+  }
+
+  /// Delete cooperator by ID
+  Future<Result<bool>> deleteCooperator(String id) async {
+    try {
+      await SupabaseConfig.client
+          .from('cooperators')
+          .delete()
+          .eq('id', id);
+      return Success(true);
+    } catch (e) {
+      return Failure('Failed to delete cooperator: $e');
     }
   }
 }

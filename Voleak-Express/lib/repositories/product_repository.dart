@@ -35,5 +35,18 @@ class ProductRepository {
       return Failure('Failed to save product in Supabase: $e');
     }
   }
+
+  /// Delete product by ID from Supabase
+  Future<Result<bool>> deleteProduct(String id) async {
+    try {
+      await SupabaseConfig.client
+          .from('products')
+          .delete()
+          .eq('id', id);
+      return Success(true);
+    } catch (e) {
+      return Failure('Failed to delete product: $e');
+    }
+  }
 }
 

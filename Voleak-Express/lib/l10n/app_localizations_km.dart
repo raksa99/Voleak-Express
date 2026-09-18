@@ -821,7 +821,8 @@ class AppLocalizationsKm extends AppLocalizations {
   String get receiptTotal => 'សរុប៖ ';
 
   @override
-  String get receiptThankYou => 'សូមអរគុណសម្រាប់ការជ្រើសរើស Top Sports Textile!';
+  String get receiptThankYou =>
+      'សូមអរគុណសម្រាប់ការជ្រើសរើស Top Sports Textile!';
 
   @override
   String get receiptKeepRecord =>

@@ -26,14 +26,42 @@ class _ManagerTrucksScreenState extends State<ManagerTrucksScreen> {
   Future<void> _loadTrucks() async {
     setState(() => _isLoading = true);
     try {
-      final data = await SupabaseConfig.client
-          .from('buses')
-          .select('id, plate_number, model, capacity, status, image_url')
-          .eq('operator_id', widget.operatorId)
-          .order('created_at', ascending: false);
+      dynamic data;
+      try {
+        final query = SupabaseConfig.client.from('trucks').select('*');
+        if (widget.operatorId.isNotEmpty &&
+            widget.operatorId != 'demo-operator-id' &&
+            !widget.operatorId.startsWith('all')) {
+          final res = await query
+              .eq('operator_id', widget.operatorId)
+              .order('created_at', ascending: false);
+          if (res.isNotEmpty) {
+            data = res;
+          } else {
+            data = await SupabaseConfig.client
+                .from('trucks')
+                .select('*')
+                .order('created_at', ascending: false);
+          }
+        } else {
+          data = await query.order('created_at', ascending: false);
+        }
+      } catch (_) {
+        data = await SupabaseConfig.client
+            .from('buses')
+            .select('*')
+            .order('created_at', ascending: false);
+      }
+
       if (mounted) {
+        final mapped = List<Map<String, dynamic>>.from(data).map((t) {
+          final map = Map<String, dynamic>.from(t);
+          map['capacity'] = (map['capacity'] ?? map['capacity_tons'] as num?)?.toInt() ?? 25;
+          return map;
+        }).toList();
+
         setState(() {
-          _trucks = List<Map<String, dynamic>>.from(data);
+          _trucks = mapped;
           _isLoading = false;
         });
       }
@@ -57,10 +85,17 @@ class _ManagerTrucksScreenState extends State<ManagerTrucksScreen> {
 
   Future<void> _updateStatus(String id, String status) async {
     try {
-      await SupabaseConfig.client
-          .from('buses')
-          .update({'status': status})
-          .eq('id', id);
+      try {
+        await SupabaseConfig.client
+            .from('trucks')
+            .update({'status': status})
+            .eq('id', id);
+      } catch (_) {
+        await SupabaseConfig.client
+            .from('buses')
+            .update({'status': status})
+            .eq('id', id);
+      }
       _loadTrucks();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -260,12 +295,33 @@ class _TruckCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            context.tr.truckCapacity(truck['capacity'] as int),
+                            '${(truck['capacity'] ?? truck['capacity_tons'] as num?)?.toInt() ?? 25} Tons Capacity',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
                             ),
                           ),
+                          if (truck['assigned_driver_name'] != null &&
+                              (truck['assigned_driver_name'] as String).isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              size: 12,
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                truck['assigned_driver_name'],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -551,17 +607,29 @@ class _TruckFormSheetState extends State<_TruckFormSheet> {
         'plate_number': _plateCtrl.text.trim(),
         'model': _modelCtrl.text.trim(),
         'capacity': int.parse(_capacityCtrl.text.trim()),
+        'capacity_tons': double.tryParse(_capacityCtrl.text.trim()) ?? 25.0,
         'status': widget.existing != null ? widget.existing!['status'] : 'active',
         'image_url': imageUrl,
       };
 
       if (widget.existing != null) {
-        await SupabaseConfig.client
-            .from('buses')
-            .update(data)
-            .eq('id', widget.existing!['id']);
+        try {
+          await SupabaseConfig.client
+              .from('trucks')
+              .update(data)
+              .eq('id', widget.existing!['id']);
+        } catch (_) {
+          await SupabaseConfig.client
+              .from('buses')
+              .update(data)
+              .eq('id', widget.existing!['id']);
+        }
       } else {
-        await SupabaseConfig.client.from('buses').insert(data);
+        try {
+          await SupabaseConfig.client.from('trucks').insert(data);
+        } catch (_) {
+          await SupabaseConfig.client.from('buses').insert(data);
+        }
       }
 
       if (mounted) {
