@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthRole } from '../context/AuthRoleContext';
 import {
@@ -58,10 +58,21 @@ import {
   Info,
   Upload,
   Image as ImageIcon,
-  FileUp,
   Camera,
+  X,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const DEFAULT_CATEGORIES = [
+  'Functional Performance Fabrics (ក្រណាត់មុខងារពិសេស)',
+  'Knitted Fabrics (ក្រណាត់ត្បាញយឺត)',
+  'Spandex & Elastane Blends (ក្រណាត់អេឡាស្ទីន)',
+  'Activewear & Training Tops (អាវកីឡា និងអាវហ្វឹកហាត់)',
+  'Sport Bottoms (ខោកីឡា)',
+  'Outerwear (អាវក្រៅកីឡា)',
+];
 
 export default function InventoryView({
   products = [],
@@ -80,7 +91,7 @@ export default function InventoryView({
   const { isAdmin, isManager, selectedBranchId, currentUser } = useAuthRole();
 
   // Navigation & View States
-  const [activeTab, setActiveTab] = useState('branch'); // 'branch', 'catalog'
+  const [activeTab, setActiveTab] = useState('catalog');
   const [searchVal, setSearchVal] = useState('');
   const [selectedHubFilter, setSelectedHubFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -88,6 +99,7 @@ export default function InventoryView({
   const [catalogViewMode, setCatalogViewMode] = useState('grid'); // 'grid', 'table'
   const [toastMessage, setToastMessage] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
 
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
@@ -241,15 +253,184 @@ export default function InventoryView({
   ];
   const hubs = operators && operators.length > 0 ? operators : defaultHubs;
 
-  const categories = [
-    'All Categories',
-    'Functional Performance Fabrics (ក្រណាត់មុខងារពិសេស)',
-    'Knitted Fabrics (ក្រណាត់ត្បាញយឺត)',
-    'Spandex & Elastane Blends (ក្រណាត់អេឡាស្ទីន)',
-    'Activewear & Training Tops (អាវកីឡា និងអាវហ្វឹកហាត់)',
-    'Sport Bottoms (ខោកីឡា)',
-    'Outerwear (អាវក្រៅកីឡា)',
-  ];
+  // 6. Category Management State
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [editingCategoryName, setEditingCategoryName] = useState(null);
+  const [editCategoryInputValue, setEditCategoryInputValue] = useState('');
+
+  const [managedCategories, setManagedCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voleak_inventory_categories_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading categories from localStorage', e);
+    }
+    return DEFAULT_CATEGORIES;
+  });
+
+  // Keep managed categories synchronized with any live product categories from Supabase
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+    const existingLower = new Set(managedCategories.map((c) => c.toLowerCase()));
+    const toAdd = [];
+    products.forEach((p) => {
+      const cat = (p.category || '').trim();
+      if (cat && cat !== 'All Categories' && !existingLower.has(cat.toLowerCase())) {
+        existingLower.add(cat.toLowerCase());
+        toAdd.push(cat);
+      }
+    });
+    if (toAdd.length > 0) {
+      setManagedCategories((prev) => {
+        const updated = [...prev, ...toAdd];
+        try {
+          localStorage.setItem('voleak_inventory_categories_v2', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+  }, [products]);
+
+  const categories = useMemo(() => {
+    return ['All Categories', ...managedCategories];
+  }, [managedCategories]);
+
+  // Handler: Create New Category
+  const handleCreateCategory = (catName) => {
+    const name = (catName || newCategoryInput || '').trim();
+    if (!name) {
+      showToast('⚠️ Please enter a category name');
+      return;
+    }
+
+    const existingMatch = managedCategories.find(
+      (c) => c.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existingMatch) {
+      showToast(`ℹ️ Category "${existingMatch}" already exists`);
+      if (productModalOpen) {
+        setProductForm((prev) => ({ ...prev, category: existingMatch }));
+      }
+      setNewCategoryInput('');
+      return;
+    }
+
+    const updated = [...managedCategories, name];
+    setManagedCategories(updated);
+    try {
+      localStorage.setItem('voleak_inventory_categories_v2', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save category to localStorage', e);
+    }
+
+    if (productModalOpen) {
+      setProductForm((prev) => ({ ...prev, category: name }));
+    }
+
+    showToast(`🎉 Category "${name}" created successfully!`);
+    setNewCategoryInput('');
+  };
+
+  // Handler: Rename / Edit Existing Category
+  const handleRenameCategory = async (oldName, newName) => {
+    const trimmedNew = (newName || '').trim();
+    if (!trimmedNew) {
+      showToast('⚠️ Category name cannot be empty');
+      return;
+    }
+
+    if (trimmedNew.toLowerCase() === oldName.toLowerCase()) {
+      setEditingCategoryName(null);
+      return;
+    }
+
+    if (managedCategories.some((c) => c.toLowerCase() === trimmedNew.toLowerCase())) {
+      showToast(`⚠️ Category "${trimmedNew}" already exists`);
+      return;
+    }
+
+    // 1. Update managedCategories list
+    const updatedList = managedCategories.map((c) => (c === oldName ? trimmedNew : c));
+    setManagedCategories(updatedList);
+    try {
+      localStorage.setItem('voleak_inventory_categories_v2', JSON.stringify(updatedList));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 2. Update all products in state & Supabase database
+    const productsToUpdate = products.filter((p) => p.category === oldName);
+    if (productsToUpdate.length > 0) {
+      setProducts((prev) =>
+        prev.map((p) => (p.category === oldName ? { ...p, category: trimmedNew } : p))
+      );
+      Promise.allSettled(
+        productsToUpdate.map((p) => updateLocalProduct(p.id, { category: trimmedNew }))
+      ).catch((err) => console.warn('Product category update error', err));
+    }
+
+    // 3. Update filters and form
+    if (selectedCategoryFilter === oldName) {
+      setSelectedCategoryFilter(trimmedNew);
+    }
+    if (productForm.category === oldName) {
+      setProductForm((prev) => ({ ...prev, category: trimmedNew }));
+    }
+
+    setEditingCategoryName(null);
+    showToast(`✏️ Renamed "${oldName}" to "${trimmedNew}" (${productsToUpdate.length} items updated)`);
+  };
+
+  // Handler: Remove / Delete Category
+  const handleDeleteCategory = async (catToDelete) => {
+    const productsWithCat = products.filter((p) => p.category === catToDelete);
+
+    if (productsWithCat.length > 0) {
+      const confirmDelete = window.confirm(
+        `Category "${catToDelete}" is assigned to ${productsWithCat.length} product(s).\n\nDo you want to delete this category and reassign those products to "General"?`
+      );
+      if (!confirmDelete) return;
+
+      const fallbackCat = 'General';
+      setProducts((prev) =>
+        prev.map((p) => (p.category === catToDelete ? { ...p, category: fallbackCat } : p))
+      );
+      Promise.allSettled(
+        productsWithCat.map((p) => updateLocalProduct(p.id, { category: fallbackCat }))
+      ).catch((err) => console.warn('Product fallback category error', err));
+    }
+
+    const updatedList = managedCategories.filter((c) => c !== catToDelete);
+    setManagedCategories(updatedList);
+    try {
+      localStorage.setItem('voleak_inventory_categories_v2', JSON.stringify(updatedList));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    if (selectedCategoryFilter === catToDelete) {
+      setSelectedCategoryFilter('All Categories');
+    }
+    if (productForm.category === catToDelete) {
+      setProductForm((prev) => ({
+        ...prev,
+        category: updatedList[0] || 'General',
+      }));
+    }
+
+    if (editingCategoryName === catToDelete) {
+      setEditingCategoryName(null);
+    }
+
+    showToast(`🗑️ Category "${catToDelete}" removed successfully.`);
+  };
 
   // Helper Toast
   const showToast = (msg) => {
@@ -438,15 +619,27 @@ export default function InventoryView({
   // ==========================================
   // CRUD 1: PRODUCT CATALOG HANDLERS
   // ==========================================
+  const generateUniqueSku = () => {
+    let newSku = '';
+    for (let i = 0; i < 30; i++) {
+      newSku = `VK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`;
+      if (!products.some((p) => p.sku?.toUpperCase() === newSku.toUpperCase())) {
+        return newSku;
+      }
+    }
+    return `VK-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 90 + 10)}`;
+  };
+
   const handleOpenAddProduct = () => {
     setEditingProduct(null);
     setImageSourceMode('file');
+    const validDefaultCat = categories.find((c) => c !== 'All Categories') || 'Outerwear (អាវក្រៅកីឡា)';
     setProductForm({
       name: '',
-      sku: `VK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`,
+      sku: generateUniqueSku(),
       barcode: `${Math.floor(Math.random() * 900000000000 + 100000000000)}`,
-      category: 'Packaging & Logistics',
-      unit: 'Pallet',
+      category: validDefaultCat,
+      unit: 'Roll',
       default_price: 35.0,
       cost_price: 22.0,
       min_stock_alert: 20,
@@ -466,92 +659,120 @@ export default function InventoryView({
       name: prod.name,
       sku: prod.sku,
       barcode: prod.barcode || '',
-      category: prod.category || 'Packaging & Logistics',
-      unit: prod.unit || 'Pallet',
+      category: prod.category || categories.find((c) => c !== 'All Categories') || 'Outerwear (អាវក្រៅកីឡា)',
+      unit: prod.unit || 'Roll',
       default_price: prod.default_price || 0,
       cost_price: prod.cost_price || 0,
       min_stock_alert: prod.min_stock_alert || 10,
       warehouse_location: prod.warehouse_location || 'Aisle A-1',
       image_url: prod.image_url || '',
       description: prod.description || '',
-      initial_hub_id: 'op-1',
+      initial_hub_id: hubs[0]?.id || 'op-1',
       initial_stock_qty: 0,
     });
     setProductModalOpen(true);
   };
 
   const handleSaveProduct = async (e) => {
-    e.preventDefault();
-    if (editingProduct) {
-      // Update (U)
-      const updates = {
-        name: productForm.name,
-        sku: productForm.sku,
-        barcode: productForm.barcode,
-        category: productForm.category,
-        unit: productForm.unit,
-        default_price: parseFloat(productForm.default_price) || 0,
-        cost_price: parseFloat(productForm.cost_price) || 0,
-        min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
-        warehouse_location: productForm.warehouse_location,
-        image_url: productForm.image_url,
-        description: productForm.description,
-      };
+    if (e && e.preventDefault) e.preventDefault();
 
-      await updateLocalProduct(editingProduct.id, updates);
-
-      setProducts((prev) =>
-        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...updates } : p))
-      );
-      showToast(`Updated product: ${productForm.name}`);
-    } else {
-      // Create (C)
-      const newProdPayload = {
-        name: productForm.name,
-        sku: productForm.sku,
-        barcode: productForm.barcode,
-        category: productForm.category,
-        unit: productForm.unit,
-        default_price: parseFloat(productForm.default_price) || 0,
-        cost_price: parseFloat(productForm.cost_price) || 0,
-        min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
-        warehouse_location: productForm.warehouse_location,
-        image_url: productForm.image_url,
-        description: productForm.description,
-      };
-
-      const createdProduct = await addLocalProduct(newProdPayload);
-      setProducts((prev) => [createdProduct, ...prev]);
-
-      // If initial stock specified, assign to hub
-      if (productForm.initial_stock_qty > 0) {
-        const stockPayload = {
-          branch_id: productForm.initial_hub_id,
-          product_id: createdProduct.id,
-          on_hand_quantity: parseInt(productForm.initial_stock_qty),
-          reserved_quantity: 0,
-          warehouse_location: productForm.warehouse_location,
-        };
-        const createdStock = await addLocalBranchStock(stockPayload);
-        setBranchStock((prev) => [createdStock, ...prev]);
-
-        // Log movement
-        const movementPayload = {
-          movement_type: 'inbound',
-          product_id: createdProduct.id,
-          branch_id: productForm.initial_hub_id,
-          to_branch_id: null,
-          quantity: parseInt(productForm.initial_stock_qty),
-          operator_name: currentUser?.name || 'Managing Director',
-          reference_no: `INIT-${createdProduct.sku}`,
-          reason: 'Initial catalog stock intake',
-        };
-        const createdMovement = await addLocalStockMovement(movementPayload);
-        setStockMovements((prev) => [createdMovement, ...prev]);
-      }
-      showToast(`Created new product SKU: ${createdProduct.sku}`);
+    if (!productForm.name || !productForm.name.trim()) {
+      showToast('⚠️ Please enter a Product / Cargo Item Name');
+      return;
     }
-    setProductModalOpen(false);
+
+    if (!productForm.sku || !productForm.sku.trim()) {
+      showToast('⚠️ Please provide a SKU Code');
+      return;
+    }
+
+    const cleanSku = productForm.sku.trim().toUpperCase();
+
+    // Check duplicate SKU when creating
+    if (!editingProduct && products.some((p) => p.sku?.trim().toUpperCase() === cleanSku)) {
+      showToast(`⚠️ SKU "${cleanSku}" is already in use. Generating a new unique SKU...`);
+      setProductForm((prev) => ({ ...prev, sku: generateUniqueSku() }));
+      return;
+    }
+
+    setIsSubmittingProduct(true);
+    try {
+      if (editingProduct) {
+        // Update (U)
+        const updates = {
+          name: productForm.name.trim(),
+          sku: cleanSku,
+          barcode: productForm.barcode,
+          category: productForm.category,
+          unit: productForm.unit,
+          default_price: parseFloat(productForm.default_price) || 0,
+          cost_price: parseFloat(productForm.cost_price) || 0,
+          min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
+          warehouse_location: productForm.warehouse_location,
+          image_url: productForm.image_url,
+          description: productForm.description,
+        };
+
+        const updated = await updateLocalProduct(editingProduct.id, updates);
+
+        setProducts((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...updated } : p))
+        );
+        showToast(`Updated product: ${productForm.name.trim()}`);
+      } else {
+        // Create (C)
+        const newProdPayload = {
+          name: productForm.name.trim(),
+          sku: cleanSku,
+          barcode: productForm.barcode,
+          category: productForm.category,
+          unit: productForm.unit,
+          default_price: parseFloat(productForm.default_price) || 0,
+          cost_price: parseFloat(productForm.cost_price) || 0,
+          min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
+          warehouse_location: productForm.warehouse_location,
+          image_url: productForm.image_url,
+          description: productForm.description,
+        };
+
+        const createdProduct = await addLocalProduct(newProdPayload);
+        setProducts((prev) => [createdProduct, ...prev]);
+
+        // If initial stock specified, assign to hub
+        if (productForm.initial_stock_qty > 0) {
+          const stockPayload = {
+            branch_id: productForm.initial_hub_id || hubs[0]?.id || 'op-1',
+            product_id: createdProduct.id,
+            on_hand_quantity: parseInt(productForm.initial_stock_qty),
+            reserved_quantity: 0,
+            warehouse_location: productForm.warehouse_location,
+          };
+          const createdStock = await addLocalBranchStock(stockPayload);
+          setBranchStock((prev) => [createdStock, ...prev]);
+
+          // Log movement
+          const movementPayload = {
+            movement_type: 'inbound',
+            product_id: createdProduct.id,
+            branch_id: productForm.initial_hub_id || hubs[0]?.id || 'op-1',
+            to_branch_id: null,
+            quantity: parseInt(productForm.initial_stock_qty),
+            operator_name: currentUser?.name || 'Managing Director',
+            reference_no: `INIT-${createdProduct.sku}`,
+            reason: 'Initial catalog stock intake',
+          };
+          const createdMovement = await addLocalStockMovement(movementPayload);
+          setStockMovements((prev) => [createdMovement, ...prev]);
+        }
+        showToast(`Created new product SKU: ${createdProduct.sku}`);
+      }
+      setProductModalOpen(false);
+    } catch (err) {
+      console.error('Save product error:', err);
+      showToast(`⚠️ ${err.message || 'Error saving product'}`);
+    } finally {
+      setIsSubmittingProduct(false);
+    }
   };
 
   const handleConfirmDeleteProduct = async () => {
@@ -908,24 +1129,19 @@ export default function InventoryView({
 
   // Export CSV
   const handleExportCsv = () => {
-    const headers = ['Product Name', 'SKU', 'Barcode', 'Category', 'Unit', 'Hub/Branch', 'On-Hand', 'Reserved', 'Available', 'Unit Price ($)', 'Valuation ($)'];
-    const rows = filteredBranchStock.map((bs) => {
-      const prod = getProduct(bs.product_id);
-      const hub = getHub(bs.branch_id);
-      const available = Math.max(0, bs.on_hand_quantity - bs.reserved_quantity);
-      const val = (bs.on_hand_quantity * (prod.cost_price || prod.default_price || 0)).toFixed(2);
+    const headers = ['Product Name', 'SKU', 'Barcode', 'Category', 'Unit', 'Weight (kg)', 'Volume (m³)', 'Min Alert', 'Location', 'Status'];
+    const rows = filteredProducts.map((prod) => {
       return [
         `"${prod.name || 'Item'}"`,
         `"${prod.sku || ''}"`,
         `"${prod.barcode || ''}"`,
         `"${prod.category || ''}"`,
         `"${prod.unit || ''}"`,
-        `"${hub.name || ''}"`,
-        bs.on_hand_quantity,
-        bs.reserved_quantity,
-        available,
-        (prod.default_price || 0).toFixed(2),
-        val,
+        prod.weight_kg || 'Standard',
+        prod.volume_cbm || '—',
+        prod.min_stock_alert || 10,
+        `"${prod.warehouse_location || 'General'}"`,
+        '"Active In Catalog"',
       ];
     });
 
@@ -933,7 +1149,7 @@ export default function InventoryView({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `voleak_express_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `top_sports_textile_cargo_catalog_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -977,15 +1193,21 @@ export default function InventoryView({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
 
-          {activeTab === 'catalog' && (
-            <button
-              onClick={handleOpenAddProduct}
-              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm shadow-amber-500/25 transition-all flex items-center gap-1.5 active:scale-95"
-            >
-              <Package className="w-4 h-4" />
-              <span>{t('addProductBtn')}</span>
-            </button>
-          )}
+          <button
+            onClick={handleOpenAddProduct}
+            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm shadow-amber-500/25 transition-all flex items-center gap-1.5 active:scale-95"
+          >
+            <Package className="w-4 h-4" />
+            <span>{t('addProductBtn')}</span>
+          </button>
+          <button
+            onClick={() => setShowAddCategoryModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 border border-slate-200/60 dark:border-slate-700/60"
+            title="Add & Manage Product Categories"
+          >
+            <Tag className="w-4 h-4 text-amber-500" />
+            <span>+ Category</span>
+          </button>
 
           <button
             onClick={() => handleOpenRestock()}
@@ -1004,17 +1226,6 @@ export default function InventoryView({
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
             <span>{isSyncing ? 'Syncing...' : 'Sync Live DB'}</span>
           </button>
-
-          <button
-            onClick={handleResetTopSportsTextile}
-            disabled={isSyncing}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
-            title="Load & sync full Top Sports Textile (TST Group) product catalog"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
-            <span>Top Sports Textile Catalog</span>
-          </button>
-
           <button
             onClick={handleExportCsv}
             className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all"
@@ -1058,7 +1269,7 @@ export default function InventoryView({
                 {kpiStats.totalUnitsOnHand.toLocaleString()}
               </h3>
               <span className="text-[11px] font-bold text-sky-500 flex items-center gap-1 mt-1">
-                <Building2 className="w-3.5 h-3.5" /> Across {kpiStats.activeHubCount} {kpiStats.activeHubCount === 1 ? 'Logistics Hub' : 'Logistics Hubs'}
+                <Boxes className="w-3.5 h-3.5" /> Top Sports Textile Inventory
               </span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
@@ -1073,16 +1284,16 @@ export default function InventoryView({
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('kpiTotalValuation')}</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Available Cargo Stock</p>
               <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                ${kpiStats.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {(kpiStats.totalAvailable || kpiStats.totalOnHand || 0).toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
               </h3>
               <span className="text-[11px] font-semibold text-slate-400 mt-1 block">
-                Warehouse inventory asset value
+                Ready for truck dispatch & loading
               </span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <DollarSign className="w-6 h-6" />
+              <Boxes className="w-6 h-6" />
             </div>
           </div>
         </motion.div>
@@ -1108,298 +1319,82 @@ export default function InventoryView({
         </motion.div>
       </div>
 
-      {/* Main Tab Navigation & Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
-          <button
-            onClick={() => setActiveTab('branch')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              activeTab === 'branch'
-                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Warehouse className="w-4 h-4" />
-            <span>{t('tabBranchStock')}</span>
-          </button>
+      {/* Top Sports Textile Cargo Catalog Filter & View Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+        {/* View Switcher & Counter */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button
+              onClick={() => setCatalogViewMode('grid')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                catalogViewMode === 'grid'
+                  ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Grid</span>
+            </button>
+            <button
+              onClick={() => setCatalogViewMode('table')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                catalogViewMode === 'table'
+                  ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('catalog')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              activeTab === 'catalog'
-                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>{t('tabCatalog')}</span>
-          </button>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+            Showing <span className="text-amber-500 font-extrabold">{filteredProducts.length}</span> cargo {filteredProducts.length === 1 ? 'item' : 'items'}
+          </span>
         </div>
 
-        {/* Search & Dropdown Filters */}
+        {/* Search & Category Filter */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Search Box */}
-          <div className="relative flex-1 sm:w-60">
+          <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
-              placeholder={t('search')}
+              placeholder="Search cargo name, SKU, barcode..."
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             />
           </div>
 
-          {/* Hub Dropdown (For Branch tab) */}
-          {activeTab === 'branch' && (
+          {/* Category Dropdown & Add Button */}
+          <div className="flex items-center gap-1">
             <select
-              value={selectedHubFilter}
-              onChange={(e) => setSelectedHubFilter(e.target.value)}
+              value={selectedCategoryFilter}
+              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
               className="px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             >
-              <option value="all">{t('filterAllHubs')}</option>
-              {hubs.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name}
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
-          )}
 
-          {/* Category Dropdown */}
-          <select
-            value={selectedCategoryFilter}
-            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          {/* Health Filter (For Branch tab) */}
-          {activeTab === 'branch' && (
-            <select
-              value={healthFilter}
-              onChange={(e) => setHealthFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            <button
+              onClick={() => setShowAddCategoryModal(true)}
+              className="p-1.5 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-all flex items-center gap-1 text-xs font-semibold active:scale-95"
+              title="Add New Category"
             >
-              <option value="all">{t('filterAllHealth')}</option>
-              <option value="healthy">{t('stockHealthy')}</option>
-              <option value="low">{t('stockLow')}</option>
-              <option value="out">{t('stockOut')}</option>
-            </select>
-          )}
+              <Plus className="w-3.5 h-3.5 text-amber-500" />
+              <span className="hidden sm:inline">Category</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* --- TAB 1: HUB & BRANCH STOCK (WITH FULL CRUD) --- */}
-      {activeTab === 'branch' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="py-3.5 px-4">{t('thProductName')}</th>
-                  <th className="py-3.5 px-4">{t('thSku')}</th>
-                  <th className="py-3.5 px-4">{t('thBranch')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('thOnHand')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('thReserved')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('thAvailable')}</th>
-                  <th className="py-3.5 px-4 text-center">{t('thHealthStatus')}</th>
-                  <th className="py-3.5 px-4 text-right">Operations & Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredBranchStock.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="py-12 text-center text-slate-400">
-                      No stock records found. Click "+ Assign Stock to Hub" to add an inventory record.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredBranchStock.map((bs) => {
-                    const prod = getProduct(bs.product_id);
-                    const hub = getHub(bs.branch_id);
-                    const available = Math.max(0, bs.on_hand_quantity - bs.reserved_quantity);
-                    const minAlert = prod.min_stock_alert || 10;
-                    const isOut = available === 0;
-                    const isLow = available <= minAlert && !isOut;
-
-                    return (
-                      <tr
-                        key={bs.id}
-                        className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                      >
-                        {/* Product info (Read detail on click) */}
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={prod.image_url}
-                              alt={prod.name}
-                              className="w-12 h-12 rounded-xl object-cover object-center ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800 shadow-sm"
-                              onError={(e) => {
-                                e.currentTarget.src = 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80';
-                              }}
-                            />
-                            <div>
-                              <button
-                                onClick={() => setStockDetailModal(bs)}
-                                className="text-left font-bold text-slate-900 dark:text-white hover:text-amber-500 transition-colors line-clamp-1"
-                              >
-                                {prod.name || 'Consignment Item'}
-                              </button>
-                              <div className="text-[11px] text-slate-400 font-normal flex items-center gap-2">
-                                <span className="text-amber-500 font-semibold">{prod.category}</span>
-                                <span>•</span>
-                                <span>Unit: {prod.unit}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* SKU & Barcode */}
-                        <td className="py-3.5 px-4 font-mono font-bold">
-                          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                            <span>{prod.sku}</span>
-                            <button
-                              onClick={() => setBarcodeModalItem(prod)}
-                              className="p-1 rounded hover:bg-amber-500/10"
-                              title="Inspect Barcode"
-                            >
-                              <Barcode className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-mono">{prod.barcode}</div>
-                        </td>
-
-                        {/* Branch / Hub */}
-                        <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-sky-500" />
-                            <span>{hub.name}</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400">{hub.province}</span>
-                        </td>
-
-                        {/* On-Hand */}
-                        <td className="py-3.5 px-4 text-right font-extrabold text-slate-900 dark:text-white text-sm">
-                          {bs.on_hand_quantity.toLocaleString()}
-                        </td>
-
-                        {/* Reserved */}
-                        <td className="py-3.5 px-4 text-right font-bold text-amber-500">
-                          {bs.reserved_quantity.toLocaleString()}
-                        </td>
-
-                        {/* Available */}
-                        <td className="py-3.5 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                          {available.toLocaleString()}
-                        </td>
-
-                        {/* Health Status */}
-                        <td className="py-3.5 px-4 text-center">
-                          {isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                              <XCircle className="w-3 h-3" />
-                              {t('stockOut')}
-                            </span>
-                          ) : isLow ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
-                              <AlertTriangle className="w-3 h-3" />
-                              {t('stockLow')} ({available} / min {minAlert})
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                              <CheckCircle2 className="w-3 h-3" />
-                              {t('stockHealthy')}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Full Operations & CRUD Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Read / Detail Modal */}
-                            <button
-                              onClick={() => setStockDetailModal(bs)}
-                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all"
-                              title="View Full Stock Details"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Quick Restock */}
-                            <button
-                              onClick={() => handleOpenRestock(bs.product_id, bs.branch_id)}
-                              className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white font-bold text-[11px] transition-all"
-                              title="Restock Inbound"
-                            >
-                              + Restock
-                            </button>
-
-                            {/* Update (Edit) Stock Record */}
-                            <button
-                              onClick={() => handleOpenEditBranchStock(bs)}
-                              className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-all"
-                              title="Edit Stock Allocation"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Delete Stock Record */}
-                            <button
-                              onClick={() => setDeleteStockConfirm(bs)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
-                              title="Delete from Hub"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* --- TAB 2: PRODUCT CATALOG MANAGEMENT (CRUD) --- */}
-      {activeTab === 'catalog' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Showing {filteredProducts.length} items in factory catalog
-            </span>
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-              <button
-                onClick={() => setCatalogViewMode('grid')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  catalogViewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => setCatalogViewMode('table')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  catalogViewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                Table
-              </button>
-            </div>
-          </div>
+      {/* Top Sports Textile Cargo & Product Catalog */}
+      <div className="space-y-4">
 
           {catalogViewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1446,19 +1441,19 @@ export default function InventoryView({
                       </p>
                     </div>
 
-                    {/* Price & Actions Bottom */}
+                    {/* Specifications & Packaging Bottom */}
                     <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Selling Price</span>
-                          <div className="text-base font-black text-slate-900 dark:text-white">
-                            ${prod.default_price.toFixed(2)}
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">Stock Unit</span>
+                          <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                            {prod.unit || 'Carton'}
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Cost / Margin</span>
-                          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            ${prod.cost_price.toFixed(2)} ({margin}% margin)
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">Cargo Specification</span>
+                          <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {prod.weight_kg ? `${prod.weight_kg} kg` : 'Standard Cargo'}
                           </div>
                         </div>
                       </div>
@@ -1506,8 +1501,8 @@ export default function InventoryView({
                       <th className="py-3.5 px-4">{t('thSku')}</th>
                       <th className="py-3.5 px-4">{t('thCategory')}</th>
                       <th className="py-3.5 px-4">{t('thUnit')}</th>
-                      <th className="py-3.5 px-4 text-right">{t('thUnitPrice')}</th>
-                      <th className="py-3.5 px-4 text-right">{t('thCostPrice')}</th>
+                      <th className="py-3.5 px-4 text-right">Barcode</th>
+                      <th className="py-3.5 px-4 text-right">Weight/Spec</th>
                       <th className="py-3.5 px-4 text-right">{t('thMinAlert')}</th>
                       <th className="py-3.5 px-4 text-right">Location</th>
                       <th className="py-3.5 px-4 text-right">{t('thActions')}</th>
@@ -1532,11 +1527,11 @@ export default function InventoryView({
                         <td className="py-3 px-4 font-mono font-bold text-amber-500">{prod.sku}</td>
                         <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{prod.category}</td>
                         <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">{prod.unit}</td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
-                          ${prod.default_price.toFixed(2)}
+                        <td className="py-3 px-4 text-right font-mono font-semibold text-slate-700 dark:text-slate-300">
+                          {prod.barcode || '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                          ${prod.cost_price.toFixed(2)}
+                        <td className="py-3 px-4 text-right font-semibold text-slate-600 dark:text-slate-400">
+                          {prod.weight_kg ? `${prod.weight_kg} kg` : 'Standard'}
                         </td>
                         <td className="py-3 px-4 text-right font-bold text-amber-500">
                           {prod.min_stock_alert} units
@@ -1570,7 +1565,6 @@ export default function InventoryView({
             </div>
           )}
         </div>
-      )}
 
       {/* ======================================================== */}
       {/* ALL MODALS: CREATE, READ, UPDATE, DELETE & OPERATIONS */}
@@ -1653,12 +1647,12 @@ export default function InventoryView({
                         <strong className="text-slate-900 dark:text-white">{stockDetailModal.warehouse_location || prod.warehouse_location || 'General Aisle'}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Unit Cost & Selling Price:</span>
-                        <strong className="text-slate-900 dark:text-white">${prod.cost_price?.toFixed(2)} (Cost) / ${prod.default_price?.toFixed(2)} (Sell)</strong>
+                        <span className="text-slate-400">Unit Weight & Packaging:</span>
+                        <strong className="text-slate-900 dark:text-white">{prod.weight_kg ? `${prod.weight_kg} kg / ${prod.unit}` : `Standard ${prod.unit}`}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Total Hub Valuation:</span>
-                        <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">${totalValue}</strong>
+                        <span className="text-slate-400">Dispatch Readiness:</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">100% Verified</strong>
                       </div>
                     </div>
 
@@ -1980,50 +1974,77 @@ export default function InventoryView({
       {/* --- MODAL: ADD / EDIT PRODUCT (CREATE & UPDATE) --- */}
       <AnimatePresence>
         {productModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 my-8"
+              className="w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-amber-500">
-                  <Package className="w-5 h-5" />
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    {editingProduct ? 'Edit Catalog Product' : 'Add New Factory Product / Cargo SKU'}
-                  </h3>
+              {/* Pinned Header - Always Visible */}
+              <div className="flex items-center justify-between p-5 pb-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 z-10">
+                <div className="flex items-center gap-2.5 text-amber-500">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                      {editingProduct ? 'Edit Catalog Product' : 'Add New Factory Product / Cargo SKU'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      {editingProduct ? 'Update SKU specs, pricing and media' : 'Create new product SKU and initial hub inventory'}
+                    </p>
+                  </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setProductModalOpen(false)}
-                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all"
                 >
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProduct} className="space-y-4">
+              {/* Scrollable Form Body */}
+              <form id="product-sku-form" onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Name */}
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Product / Cargo Item Name *
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Product / Cargo Item Name <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-amber-500 font-medium">Required field</span>
+                    </div>
                     <input
                       type="text"
                       required
+                      autoFocus
                       value={productForm.name}
                       onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                      placeholder="e.g. Industrial Garment Fabric Rolls"
+                      placeholder="e.g. Sports Outerwear Windbreaker Jacket"
                       className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                     />
                   </div>
 
                   {/* SKU */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      SKU Code *
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        SKU Code <span className="text-rose-500">*</span>
+                      </label>
+                      {!editingProduct && (
+                        <button
+                          type="button"
+                          onClick={() => setProductForm((prev) => ({ ...prev, sku: generateUniqueSku() }))}
+                          className="text-[10px] text-amber-500 hover:text-amber-600 font-semibold flex items-center gap-1 hover:underline"
+                          title="Generate fresh unique SKU"
+                        >
+                          <RefreshCw className="w-2.5 h-2.5" />
+                          New SKU
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
                       required
@@ -2048,17 +2069,36 @@ export default function InventoryView({
 
                   {/* Category */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Category *
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        Category *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCategoryModal(true)}
+                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1 hover:underline transition-all"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add New Category</span>
+                      </button>
+                    </div>
                     <select
                       value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                      onChange={(e) => {
+                        if (e.target.value === '__add_new__') {
+                          setShowAddCategoryModal(true);
+                        } else {
+                          setProductForm({ ...productForm, category: e.target.value });
+                        }
+                      }}
                       className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                     >
                       {categories.filter((c) => c !== 'All Categories').map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
+                      <option value="__add_new__" className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-slate-800">
+                        ➕ + Add New Category...
+                      </option>
                     </select>
                   </div>
 
@@ -2078,32 +2118,32 @@ export default function InventoryView({
                     </select>
                   </div>
 
-                  {/* Selling Price */}
+                  {/* Cargo Weight per Unit */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Selling Price ($) *
+                      Weight per Unit (kg)
                     </label>
                     <input
                       type="number"
-                      step="0.10"
-                      required
-                      value={productForm.default_price}
-                      onChange={(e) => setProductForm({ ...productForm, default_price: e.target.value })}
+                      step="0.1"
+                      placeholder="e.g. 12.5"
+                      value={productForm.weight_kg || ''}
+                      onChange={(e) => setProductForm({ ...productForm, weight_kg: e.target.value })}
                       className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                     />
                   </div>
 
-                  {/* Cost Price */}
+                  {/* Volume (m³ / Unit) */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Cost Price ($) *
+                      Volume (m³ / Unit)
                     </label>
                     <input
                       type="number"
-                      step="0.10"
-                      required
-                      value={productForm.cost_price}
-                      onChange={(e) => setProductForm({ ...productForm, cost_price: e.target.value })}
+                      step="0.01"
+                      placeholder="e.g. 0.15"
+                      value={productForm.volume_cbm || ''}
+                      onChange={(e) => setProductForm({ ...productForm, volume_cbm: e.target.value })}
                       className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                     />
                   </div>
@@ -2352,23 +2392,40 @@ export default function InventoryView({
                     </div>
                   )}
                 </div>
+              </form>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              {/* Pinned Footer - Always Visible */}
+              <div className="flex items-center justify-between p-4 px-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 shrink-0 backdrop-blur-xs">
+                <div className="text-[11px] text-slate-400 hidden sm:block">
+                  {!editingProduct && (
+                    <span>Auto-generates catalog SKU & initial stock ledger</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
                   <button
                     type="button"
                     onClick={() => setProductModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold"
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                   >
                     {t('cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/25"
+                    form="product-sku-form"
+                    disabled={isSubmittingProduct}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5"
                   >
-                    {editingProduct ? 'Update Product' : 'Create Product SKU'}
+                    {isSubmittingProduct ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{editingProduct ? 'Update Product' : 'Create Product SKU'}</span>
+                    )}
                   </button>
                 </div>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
@@ -2789,6 +2846,211 @@ export default function InventoryView({
               >
                 Print Pallet Label Sticker
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- MODAL: ADD / MANAGE PRODUCT CATEGORY --- */}
+      <AnimatePresence>
+        {showAddCategoryModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="w-full max-w-lg flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh]"
+            >
+              {/* Pinned Header */}
+              <div className="flex items-center justify-between p-5 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-2.5 text-amber-500">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                      Category Management (គ្រប់គ្រងប្រភេទមុខទំនិញ)
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Add new categories, or edit and remove existing ones
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCategoryModal(false);
+                    setNewCategoryInput('');
+                    setEditingCategoryName(null);
+                  }}
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="p-5 space-y-5 overflow-y-auto flex-1">
+                {/* Add new category form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreateCategory();
+                  }}
+                  className="space-y-2 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80"
+                >
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Add New Category (បន្ថែមប្រភេទថ្មី)
+                    </label>
+                    <span className="text-[10px] text-amber-500 font-semibold">Bilingual or English</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryInput}
+                      onChange={(e) => setNewCategoryInput(e.target.value)}
+                      placeholder="e.g. Sports Equipment (ឧបករណ៍កីឡា)..."
+                      className="flex-1 p-2.5 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-medium shadow-sm"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newCategoryInput.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Categories List with Edit & Remove */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span>Active Categories ({managedCategories.length})</span>
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      {products.length} catalog items total
+                    </span>
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                    {managedCategories.map((cat) => {
+                      const count = products.filter(
+                        (p) => p.category?.toLowerCase() === cat.toLowerCase()
+                      ).length;
+                      const isEditingThis = editingCategoryName === cat;
+
+                      return (
+                        <div
+                          key={cat}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 text-xs hover:border-amber-500/30 transition-all gap-2"
+                        >
+                          {isEditingThis ? (
+                            <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={editCategoryInputValue}
+                                onChange={(e) => setEditCategoryInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleRenameCategory(cat, editCategoryInputValue);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingCategoryName(null);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-900 border-2 border-amber-500 text-slate-900 dark:text-white font-bold focus:outline-none shadow-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRenameCategory(cat, editCategoryInputValue)}
+                                className="p-1.5 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1 active:scale-95"
+                                title="Save Category Name"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Save</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCategoryName(null)}
+                                className="p-1.5 px-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs transition-all"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
+                                <Tag className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={cat}>
+                                  {cat}
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium shrink-0">
+                                  {count} {count === 1 ? 'item' : 'items'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {productModalOpen && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setProductForm((prev) => ({ ...prev, category: cat }));
+                                      setShowAddCategoryModal(false);
+                                      showToast(`Selected category: "${cat}"`);
+                                    }}
+                                    className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-white transition-all active:scale-95"
+                                  >
+                                    Select
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCategoryName(cat);
+                                    setEditCategoryInputValue(cat);
+                                  }}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all active:scale-95"
+                                  title="Edit / Rename Category"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(cat)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all active:scale-95"
+                                  title="Remove / Delete Category"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pinned Footer */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCategoryModal(false);
+                    setNewCategoryInput('');
+                    setEditingCategoryName(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

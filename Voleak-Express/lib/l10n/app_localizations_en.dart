@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Voleak Express';
+  String get appTitle => 'Top Sports Textile';
 
   @override
   String get appSplashSubtitle => 'Premium Travel Made Simple';
@@ -785,7 +785,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiptTitle => 'Receipt';
 
   @override
-  String get receiptTruckExpress => 'VOLEAK EXPRESS';
+  String get receiptTruckExpress => 'TOP SPORTS TEXTILE';
 
   @override
   String get receiptOfficial => 'OFFICIAL RECEIPT';
@@ -818,7 +818,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiptTotal => 'Total: ';
 
   @override
-  String get receiptThankYou => 'Thank you for choosing Voleak Express!';
+  String get receiptThankYou => 'Thank you for choosing Top Sports Textile!';
 
   @override
   String get receiptKeepRecord =>

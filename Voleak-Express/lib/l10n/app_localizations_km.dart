@@ -9,7 +9,7 @@ class AppLocalizationsKm extends AppLocalizations {
   AppLocalizationsKm([String locale = 'km']) : super(locale);
 
   @override
-  String get appTitle => 'Voleak Express';
+  String get appTitle => 'Top Sports Textile';
 
   @override
   String get appSplashSubtitle =>
@@ -788,7 +788,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get receiptTitle => 'បង្កាន់ដៃ';
 
   @override
-  String get receiptTruckExpress => 'VOLEAK EXPRESS';
+  String get receiptTruckExpress => 'TOP SPORTS TEXTILE';
 
   @override
   String get receiptOfficial => 'បង្កាន់ដៃផ្លូវការ';
@@ -821,7 +821,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get receiptTotal => 'សរុប៖ ';
 
   @override
-  String get receiptThankYou => 'សូមអរគុណសម្រាប់ការជ្រើសរើស Voleak Express!';
+  String get receiptThankYou => 'សូមអរគុណសម្រាប់ការជ្រើសរើស Top Sports Textile!';
 
   @override
   String get receiptKeepRecord =>

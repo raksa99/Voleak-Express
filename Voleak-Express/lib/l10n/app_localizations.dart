@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// Application title
   ///
   /// In en, this message translates to:
-  /// **'Voleak Express'**
+  /// **'Top Sports Textile'**
   String get appTitle;
 
   /// Splash screen subtitle
@@ -1504,7 +1504,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiptTruckExpress.
   ///
   /// In en, this message translates to:
-  /// **'VOLEAK EXPRESS'**
+  /// **'TOP SPORTS TEXTILE'**
   String get receiptTruckExpress;
 
   /// No description provided for @receiptOfficial.
@@ -1570,7 +1570,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiptThankYou.
   ///
   /// In en, this message translates to:
-  /// **'Thank you for choosing Voleak Express!'**
+  /// **'Thank you for choosing Top Sports Textile!'**
   String get receiptThankYou;
 
   /// No description provided for @receiptKeepRecord.

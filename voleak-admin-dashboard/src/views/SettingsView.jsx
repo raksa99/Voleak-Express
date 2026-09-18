@@ -99,7 +99,7 @@ function LocationPickerEvents({ position, onLocationChange }) {
     !isNaN(position[0]) &&
     !isNaN(position[1])
       ? position
-      : [11.5564, 104.9282];
+      : [11.0479485, 106.1204302];
 
   return (
     <Marker
@@ -118,7 +118,7 @@ function LocationPickerEvents({ position, onLocationChange }) {
     >
       <Popup>
         <div className="p-1 text-xs">
-          <strong>Your Company Headquarters</strong>
+          <strong>Top Sports Textile HQ</strong>
           <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">Drag to adjust exact location</p>
         </div>
       </Popup>
@@ -130,28 +130,47 @@ export default function SettingsView() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('company'); // company | operations | finance | notifications | database | security
 
-  // 1. Company Profile & HQ Location State
+  // 1. Company Profile & HQ Location State (Top Sports Textile HQ)
   const [companyProfile, setCompanyProfile] = useState(() => {
     const saved = localStorage.getItem('voleak_company_profile');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (
+          !parsed.latitude ||
+          (Math.abs(Number(parsed.latitude) - 11.5564) < 0.01 &&
+            Math.abs(Number(parsed.longitude) - 104.9282) < 0.01) ||
+          parsed.name?.includes('Voleak Express')
+        ) {
+          const updated = {
+            ...parsed,
+            name: 'Top Sports Textile HQ',
+            code: 'TOPSPORT-HQ',
+            province: 'Svay Rieng',
+            address: 'https://maps.app.goo.gl/TmcZJHpCzd3KCjEr7 Top Sports Textile',
+            latitude: 11.0479485,
+            longitude: 106.1204302,
+          };
+          localStorage.setItem('voleak_company_profile', JSON.stringify(updated));
+          return updated;
+        }
+        return parsed;
       } catch (e) {
         console.error(e);
       }
     }
     return {
-      name: 'Voleak Express Co., Ltd.',
-      code: 'VOLEAK-HQ',
-      tagline: 'Factory-to-Factory Heavy Freight Logistics',
+      name: 'Top Sports Textile HQ',
+      code: 'TOPSPORT-HQ',
+      tagline: 'Top Sports Textile Heavy Freight Logistics',
       phone: '+855 12 888 999',
       email: 'dispatch@voleakexpress.com',
       director: 'Bong Leak (Managing Director)',
       tax_id: 'K002-98471203',
-      province: 'Phnom Penh',
-      address: 'National Road 4 Logistics Corridor, Phnom Penh Base',
-      latitude: 11.5564,
-      longitude: 104.9282,
+      province: 'Svay Rieng',
+      address: 'https://maps.app.goo.gl/TmcZJHpCzd3KCjEr7 Top Sports Textile',
+      latitude: 11.0479485,
+      longitude: 106.1204302,
     };
   });
 
@@ -414,6 +433,7 @@ export default function SettingsView() {
     const tablesToCheck = [
       'users',
       'operators',
+      'cooperators',
       'products',
       'branch_stock',
       'stock_movements',
@@ -451,6 +471,46 @@ export default function SettingsView() {
 -- =====================================================================
 
 create extension if not exists "uuid-ossp";
+
+-- 1. Cooperators Table (Corporate Clients & Partner Factories)
+create table if not exists public.cooperators (
+    id text primary key default uuid_generate_v4()::text,
+    name text not null,
+    factory_name text,
+    short_name text,
+    code text unique,
+    industry text default 'Garments & Textiles',
+    category text default 'Garment & Apparel Manufacturing',
+    tier text default 'VIP Platinum Partner',
+    discount_rate text default '15% Corporate Off',
+    payment_terms text default 'Net 30 Days',
+    credit_limit numeric default 50000.0,
+    current_balance numeric default 12400.0,
+    contact_person text,
+    contact_title text,
+    phone text,
+    email text,
+    tax_id text,
+    province text default 'Phnom Penh',
+    address text,
+    latitude numeric default 11.5564,
+    longitude numeric default 104.9282,
+    operator_id text default 'hub-pp-01',
+    hub_name text default 'Phnom Penh Central Freight Hub',
+    primary_corridor text default 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    logo_url text,
+    rating numeric default 5.0,
+    total_waybills int default 148,
+    total_tonnage numeric default 420.5,
+    total_spend numeric default 58200.0,
+    cod_collected numeric default 18500.0,
+    joined_date text default '2026-01-15',
+    notes text,
+    status text default 'active',
+    active_shipments jsonb default '[]'::jsonb,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
 
 create table if not exists public.products (
     id text primary key,
@@ -504,10 +564,16 @@ create table if not exists public.cooperator_stock (
     unique(cooperator_id, product_id)
 );
 
+alter table public.cooperators enable row level security;
 alter table public.products enable row level security;
 alter table public.branch_stock enable row level security;
 alter table public.stock_movements enable row level security;
 alter table public.cooperator_stock enable row level security;
+
+create policy "Allow public read cooperators" on public.cooperators for select using (true);
+create policy "Allow public insert cooperators" on public.cooperators for insert with check (true);
+create policy "Allow public update cooperators" on public.cooperators for update using (true);
+create policy "Allow public delete cooperators" on public.cooperators for delete using (true);
 
 create policy "Allow public read products" on public.products for select using (true);
 create policy "Allow public insert products" on public.products for insert with check (true);
@@ -545,7 +611,7 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Voleak_Express_Config_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `Top_Sports_Textile_Config_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   };
 
@@ -590,7 +656,6 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
         {[
           { id: 'company', label: 'Company Profile & HQ Location', icon: Building2 },
           { id: 'operations', label: 'Freight & Dispatch Rules', icon: Truck },
-          { id: 'finance', label: 'Financials & COD Escrow', icon: DollarSign },
           { id: 'notifications', label: 'Telegram Alerts & Webhooks', icon: Bell },
           { id: 'database', label: 'Supabase Live Database', icon: Database },
           { id: 'security', label: 'Data Backup & Security', icon: ShieldCheck },
@@ -759,7 +824,7 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
               {/* Embedded Map Container */}
               <div className="h-72 w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative shadow-inner">
                 <MapContainer
-                  center={[Number(companyProfile.latitude) || 11.5564, Number(companyProfile.longitude) || 104.9282]}
+                  center={[Number(companyProfile.latitude) || 11.0479485, Number(companyProfile.longitude) || 106.1204302]}
                   zoom={12}
                   minZoom={7}
                   maxZoom={18}
@@ -772,7 +837,7 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
                   className="w-full h-full"
                 >
                   <ChangeMapCenter
-                    center={[Number(companyProfile.latitude), Number(companyProfile.longitude)]}
+                    center={[Number(companyProfile.latitude) || 11.0479485, Number(companyProfile.longitude) || 106.1204302]}
                     zoom={12}
                   />
                   <TileLayer
@@ -780,7 +845,7 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <LocationPickerEvents
-                    position={[Number(companyProfile.latitude) || 11.5564, Number(companyProfile.longitude) || 104.9282]}
+                    position={[Number(companyProfile.latitude) || 11.0479485, Number(companyProfile.longitude) || 106.1204302]}
                     onLocationChange={handleMapLocationChange}
                   />
                 </MapContainer>
@@ -1136,6 +1201,7 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-[11px]">
                 {[
+                  { name: 'cooperators', label: 'Cooperators / Clients' },
                   { name: 'products', label: 'Products Catalog' },
                   { name: 'branch_stock', label: 'Hub Inventory' },
                   { name: 'stock_movements', label: 'Stock Movements' },

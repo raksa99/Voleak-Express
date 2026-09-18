@@ -85,8 +85,8 @@ export default function BookingsView({ bookings, setBookings, trips, users }) {
                 <th className="p-3.5">Recipient</th>
                 <th className="p-3.5">Weight/Vol</th>
                 <th className="p-3.5">Category</th>
-                <th className="p-3.5">COD ($)</th>
-                <th className="p-3.5">{t('thPriceAmount')}</th>
+                <th className="p-3.5">Freight Priority</th>
+                <th className="p-3.5">Transit Route</th>
                 <th className="p-3.5">{t('thStatus')}</th>
                 <th className="p-3.5 rounded-r-xl text-right">{t('thTicketQr')}</th>
               </tr>
@@ -107,8 +107,12 @@ export default function BookingsView({ bookings, setBookings, trips, users }) {
                       {bk.booking_channel}
                     </span>
                   </td>
-                  <td className="p-3.5 font-bold text-purple-500 font-mono">${bk.cod_amount?.toFixed(2) || '0.00'}</td>
-                  <td className="p-3.5 font-extrabold text-emerald-500">${bk.total_price?.toFixed(2)}</td>
+                  <td className="p-3.5 font-bold text-purple-600 dark:text-purple-400 font-mono">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/10 text-[11px]">Express Freight</span>
+                  </td>
+                  <td className="p-3.5 font-semibold text-slate-700 dark:text-slate-300">
+                    Highway Line #{bk.trip_id?.slice(-3) || '101'}
+                  </td>
                   <td className="p-3.5">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${getStatusBadge(bk.status)}`}>
                       {bk.status}
@@ -156,7 +160,7 @@ export default function BookingsView({ bookings, setBookings, trips, users }) {
                 <p>Sender: <span className="text-white font-semibold">{qrModalWaybill.sender || qrModalWaybill.passenger_name}</span></p>
                 <p>Recipient: <span className="text-white font-semibold">{qrModalWaybill.receiver || 'Siem Reap Hub'}</span></p>
                 <p>Weight/Vol: <span className="text-emerald-400 font-bold">{qrModalWaybill.seat_number}</span></p>
-                <p>COD Cash: <span className="text-purple-400 font-bold">${qrModalWaybill.cod_amount?.toFixed(2) || '0.00'}</span></p>
+                <p>Service Class: <span className="text-amber-400 font-bold">Priority Textile Freight</span></p>
               </div>
             </div>
 
@@ -227,12 +231,13 @@ export default function BookingsView({ bookings, setBookings, trips, users }) {
 
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    COD Amount ($)
+                    Pallets / Cartons Qty
                   </label>
                   <input
                     type="number"
-                    value={codAmount}
-                    onChange={(e) => setCodAmount(e.target.value)}
+                    min="1"
+                    placeholder="e.g. 10"
+                    defaultValue="1"
                     className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>

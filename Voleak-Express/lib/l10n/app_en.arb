@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "@@info": "Voleak Express English translations",
-  "appTitle": "Voleak Express",
+  "@@info": "Top Sports Textile English translations",
+  "appTitle": "Top Sports Textile",
   "@appTitle": {
     "description": "Application title"
   },
@@ -444,7 +444,7 @@
   "myTicketsViewSingular": "View My Ticket",
   "myTicketsViewPlural": "View My Tickets",
   "receiptTitle": "Receipt",
-  "receiptTruckExpress": "VOLEAK EXPRESS",
+  "receiptTruckExpress": "TOP SPORTS TEXTILE",
   "receiptOfficial": "OFFICIAL RECEIPT",
   "receiptReceiptNo": "Receipt #",
   "receiptIssued": "Issued",
@@ -455,7 +455,7 @@
   "receiptTableStatus": "Status",
   "receiptTablePrice": "Price",
   "receiptTotal": "Total: ",
-  "receiptThankYou": "Thank you for choosing Voleak Express!",
+  "receiptThankYou": "Thank you for choosing Top Sports Textile!",
   "receiptKeepRecord": "This is your official receipt. Please keep it for your records.",
   "receiptShare": "Share Receipt (PDF)",
   "receiptGenerating": "Generating...",

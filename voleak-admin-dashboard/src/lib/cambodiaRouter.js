@@ -3,6 +3,7 @@
 // and prevents routing engines from crossing international borders into Vietnam or Thailand.
 
 export const CAMBODIA_HIGHWAY_WAYPOINTS = {
+  TOP_SPORTS_HQ: [106.1204302, 11.0479485], // Top Sports Textile HQ (Bavet, Svay Rieng)
   PHNOM_PENH_CENTRAL: [104.9282, 11.5564], // Capital Central Hub connecting NR1, NR2, NR3, NR4, NR5, NR6
   NEAK_LOEUNG_BRIDGE: [105.2812, 11.2585], // NR1 Mekong Crossing Bridge
   KAMPONG_CHAM_BRIDGE: [105.4632, 11.9925], // Kizuna Bridge / NR7
@@ -21,6 +22,7 @@ export async function fetchCambodiaDomesticRoute(originLng, originLat, destLng, 
   const waypoints = [];
 
   const isOriginEast = originLng > 105.35;
+  const isDestWestOfMekong = destLng < 105.1;
   const isDestNorthWest = destLat > 12.4 && destLng < 105.1;
 
   const isOriginNorthWest = originLat > 12.4 && originLng < 105.1;
@@ -31,10 +33,13 @@ export async function fetchCambodiaDomesticRoute(originLng, originLat, destLng, 
   const isOriginNorth = originLat > 12.6;
   const isDestSouth = destLat < 11.0 && destLng < 104.2;
 
-  if (isOriginEast && isDestNorthWest) {
-    // Svay Rieng/Bavet/Prey Veng -> Siem Reap/Battambang: via NR1 Neak Loeung & Phnom Penh -> NR6
+  if (isOriginEast && isDestWestOfMekong) {
+    // Svay Rieng/Bavet (Top Sports HQ) -> Destinations West of Mekong:
+    // Guarantees crossing via NR1 Neak Loeung Bridge inside Cambodia
     waypoints.push(CAMBODIA_HIGHWAY_WAYPOINTS.NEAK_LOEUNG_BRIDGE);
-    waypoints.push(CAMBODIA_HIGHWAY_WAYPOINTS.PHNOM_PENH_CENTRAL);
+    if (isDestNorthWest || destLat > 11.9) {
+      waypoints.push(CAMBODIA_HIGHWAY_WAYPOINTS.PHNOM_PENH_CENTRAL);
+    }
   } else if (isOriginNorthWest && isDestEast) {
     // Siem Reap/Battambang -> Svay Rieng/Bavet: via NR6 -> Phnom Penh -> Neak Loeung NR1
     waypoints.push(CAMBODIA_HIGHWAY_WAYPOINTS.PHNOM_PENH_CENTRAL);

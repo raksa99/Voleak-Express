@@ -42,18 +42,18 @@ export default function Sidebar({ activeTab, setActiveTab, collapsed, setCollaps
       }`}
     >
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-20 px-4 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-sky-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25 shrink-0">
-            <Truck className="w-5 h-5 animate-pulse" />
+      <div className="flex items-center justify-between h-20 px-3.5 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-sky-600 flex items-center justify-center text-white shadow-md shadow-amber-500/25 shrink-0">
+            <Truck className="w-4.5 h-4.5 animate-pulse" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-base font-extrabold text-slate-900 dark:text-white tracking-wider flex items-center gap-1">
-                VOLEAK <span className="text-amber-500">EXPRESS</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[13px] font-black text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
+                TOP SPORTS <span className="text-amber-500">TEXTILE</span>
               </span>
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Truck & Cargo Fleet
+              <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                Heavy Freight Logistics
               </span>
             </div>
           )}
@@ -62,7 +62,7 @@ export default function Sidebar({ activeTab, setActiveTab, collapsed, setCollaps
         {/* Collapse Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all"
+          className="hidden md:flex p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all shrink-0 ml-1"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

@@ -41,7 +41,7 @@ class MyApp extends ConsumerWidget {
       useInheritedMediaQuery: true,
       builder: DevicePreview.appBuilder,
       locale: locale,
-      title: 'Voleak Express',
+      title: 'Top Sports Textile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

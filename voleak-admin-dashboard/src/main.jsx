@@ -16,7 +16,7 @@ if (rootElement) {
     console.error('Fatal mount error', err);
     rootElement.innerHTML = `
       <div style="padding: 30px; font-family: sans-serif; background: #0f172a; color: white; min-height: 100vh;">
-        <h2 style="color: #f59e0b;">Voleak Express Dashboard Mount Notice</h2>
+        <h2 style="color: #f59e0b;">Top Sports Textile Dashboard Mount Notice</h2>
         <pre style="background: #1e293b; padding: 16px; border-radius: 8px; color: #f87171;">${err?.stack || err?.message || err}</pre>
       </div>
     `;

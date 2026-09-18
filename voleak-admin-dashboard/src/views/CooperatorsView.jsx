@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import {
   Handshake,
@@ -29,22 +29,60 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   FileText,
   Warehouse,
   ArrowRight,
   Navigation,
   Scale,
   Route as RouteIcon,
+  Upload,
+  Camera,
+  RefreshCw,
+  Copy,
+  Check,
+  Database,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   fetchCooperators,
+  syncCooperatorsToSupabase,
+  checkCooperatorsTableStatus,
   addLocalCooperator,
   updateLocalCooperator,
   deleteLocalCooperator,
-  DEFAULT_OPERATORS,
-  DEFAULT_ROUTES,
+  syncHubAndCorridorLocation,
+  COOPERATORS_SQL_MIGRATION,
 } from '../lib/supabaseClient';
 import SweetAlertModal from '../components/SweetAlertModal';
+
+// Preset Verified Corporate Logos for Quick Selection
+const PRESET_COOPERATOR_LOGOS = [
+  {
+    label: 'Textiles & Mills',
+    url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    label: 'Apparel & Garments',
+    url: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    label: 'Chemicals & Drums',
+    url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    label: 'Factory Machinery',
+    url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    label: 'Heavy Logistics',
+    url: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    label: 'Cold Chain / Hub',
+    url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=300&q=80',
+  },
+];
 
 export default function CooperatorsView({
   cooperators = [],
@@ -53,15 +91,16 @@ export default function CooperatorsView({
   routes = [],
   searchVal = '',
   setActiveTab,
+  onRefresh,
 }) {
   const { t } = useLanguage();
 
-  const allOperators = operators && operators.length > 0 ? operators : DEFAULT_OPERATORS;
-  const allRoutes = routes && routes.length > 0 ? routes : DEFAULT_ROUTES;
+  const allOperators = Array.isArray(operators) ? operators : [];
+  const allRoutes = Array.isArray(routes) ? routes : [];
 
   // Local state if not provided from props
   const [localList, setLocalList] = useState(cooperators || []);
-  const items = cooperators && cooperators.length > 0 ? cooperators : localList || [];
+  const items = Array.isArray(cooperators) ? cooperators : (localList || []);
   const updateList = setCooperators || setLocalList;
 
   const [industryFilter, setIndustryFilter] = useState('all');
@@ -72,9 +111,79 @@ export default function CooperatorsView({
   const [editingCooperator, setEditingCooperator] = useState(null);
   const [deletingCooperator, setDeletingCooperator] = useState(null);
 
+  // Sync State
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [tableStatus, setTableStatus] = useState({ checked: false, exists: false, count: 0 });
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [toastMsg, setToastMsg] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 4500);
+  };
+
+  const refreshTableStatus = async () => {
+    const status = await checkCooperatorsTableStatus();
+    setTableStatus({ checked: true, exists: status.exists, count: status.count });
+    return status;
+  };
+
+  useEffect(() => {
+    refreshTableStatus();
+  }, []);
+
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      const status = await checkCooperatorsTableStatus();
+      setTableStatus({ checked: true, exists: status.exists, count: status.count });
+
+      if (!status.exists) {
+        showToast('⚠️ Supabase table "public.cooperators" not created yet. Please copy the SQL migration and run it in Supabase SQL editor.');
+        setIsSyncing(false);
+        return;
+      }
+
+      // Upsert local items to Supabase cloud
+      const syncRes = await syncCooperatorsToSupabase(items);
+      if (!syncRes.success) {
+        console.warn('Sync warning', syncRes.error);
+      }
+
+      // Fetch fresh items from Supabase
+      const fresh = await fetchCooperators();
+      if (fresh && fresh.length > 0) {
+        updateList(fresh);
+      }
+
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      const updatedStatus = await checkCooperatorsTableStatus();
+      setTableStatus({ checked: true, exists: true, count: updatedStatus.count || fresh?.length || items.length });
+      showToast(`⚡ Synced with Supabase: ${fresh?.length || items.length} Cooperators synchronized with cloud database.`);
+    } catch (err) {
+      console.warn('Sync error', err);
+      showToast('⚠️ Sync failed. Please check Supabase credentials.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleCopyMigrationSql = () => {
+    navigator.clipboard.writeText(COOPERATORS_SQL_MIGRATION);
+    setCopiedSql(true);
+    showToast('📋 Cooperators SQL Schema script copied to clipboard!');
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
   // Form State
-  const defaultHub = allOperators[0] || DEFAULT_OPERATORS[0];
-  const defaultRoute = allRoutes[0] || DEFAULT_ROUTES[0];
+  const defaultHub = allOperators[0] || null;
+  const defaultRoute = allRoutes[0] || null;
+
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [geoFeedback, setGeoFeedback] = useState('');
 
   const initialFormState = {
     name: '',
@@ -83,22 +192,25 @@ export default function CooperatorsView({
     industry: 'Garments & Textiles',
     category: 'Garment & Apparel Manufacturing',
     operator_id: defaultHub?.id || 'op-1',
-    hub_name: defaultHub?.name || 'Phnom Penh Central Freight Hub',
-    primary_corridor: defaultRoute?.name || 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    hub_name: '',
+    primary_corridor: '',
+    google_maps_link: '',
     contact_person: '',
-    contact_title: 'Procurement & Logistics Director',
+    contact_title: '',
     phone: '',
     email: '',
-    address: defaultHub?.address || 'Phnom Penh Special Economic Zone (PPSEZ), National Road 4',
-    province: defaultHub?.province || 'Phnom Penh',
-    latitude: defaultHub?.latitude || 11.5564,
-    longitude: defaultHub?.longitude || 104.9282,
+    address: '',
+    province: '',
+    latitude: null,
+    longitude: null,
     tier: 'Gold Partner',
-    discount_rate: '10% Off',
+    discount_rate: '',
     payment_terms: 'Net 30 Days',
-    credit_limit: 30000,
+    credit_limit: 0.85,
+    sell_price_kg: 0.85,
     current_balance: 0,
     tax_id: '',
+    logo_url: '',
     notes: '',
     status: 'active',
   };
@@ -107,6 +219,7 @@ export default function CooperatorsView({
 
   const resetForm = () => {
     setFormData(initialFormState);
+    setGeoFeedback('');
   };
 
   const openAddModal = () => {
@@ -116,6 +229,14 @@ export default function CooperatorsView({
 
   const openEditModal = (cop) => {
     setEditingCooperator(cop);
+    setGeoFeedback('');
+    const effectiveSellPrice =
+      cop.sell_price_kg !== undefined
+        ? cop.sell_price_kg
+        : cop.credit_limit !== undefined && cop.credit_limit < 100
+        ? cop.credit_limit
+        : 0.85;
+
     setFormData({
       name: cop.name || '',
       short_name: cop.short_name || '',
@@ -125,6 +246,7 @@ export default function CooperatorsView({
       operator_id: cop.operator_id || allOperators[0]?.id || 'op-1',
       hub_name: cop.hub_name || allOperators.find((o) => o.id === cop.operator_id)?.name || allOperators[0]?.name || '',
       primary_corridor: cop.primary_corridor || allRoutes[0]?.name || 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+      google_maps_link: cop.google_maps_link || (cop.latitude && cop.longitude ? `https://www.google.com/maps?q=${cop.latitude},${cop.longitude}` : ''),
       contact_person: cop.contact_person || '',
       contact_title: cop.contact_title || 'Procurement & Logistics Director',
       phone: cop.phone || '',
@@ -136,12 +258,235 @@ export default function CooperatorsView({
       tier: cop.tier || 'Gold Partner',
       discount_rate: cop.discount_rate || '10% Off',
       payment_terms: cop.payment_terms || 'Net 30 Days',
-      credit_limit: cop.credit_limit || 30000,
+      credit_limit: effectiveSellPrice,
+      sell_price_kg: effectiveSellPrice,
       current_balance: cop.current_balance || 0,
       tax_id: cop.tax_id || '',
+      logo_url: cop.logo_url || '',
       notes: cop.notes || '',
       status: cop.status || 'active',
     });
+  };
+
+  // Helper to detect province from coords
+  const detectProvinceFromCoords = (lat, lng) => {
+    if (lat >= 11.42 && lat <= 11.75 && lng >= 104.72 && lng <= 105.08) return 'Phnom Penh';
+    if (lat >= 10.4 && lat <= 10.95 && lng >= 103.3 && lng <= 104.05) return 'Preah Sihanouk';
+    if (lat >= 10.9 && lat <= 11.35 && lng >= 105.65 && lng <= 106.35) return 'Svay Rieng';
+    if (lat >= 13.4 && lat <= 13.95 && lng >= 102.35 && lng <= 103.35) return 'Banteay Meanchey';
+    if (lat >= 13.1 && lat <= 13.7 && lng >= 103.55 && lng <= 104.25) return 'Siem Reap';
+    if (lat >= 12.8 && lat <= 13.4 && lng >= 102.85 && lng <= 103.55) return 'Battambang';
+    if (lat >= 11.8 && lat <= 12.3 && lng >= 105.15 && lng <= 105.85) return 'Kampong Cham';
+    if (lat >= 10.4 && lat <= 10.9 && lng >= 104.0 && lng <= 104.6) return 'Kampot';
+    return 'Phnom Penh';
+  };
+
+  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Parse Google Maps Link or Location query, auto-detect location and link to nearest Hub & Corridor
+  const parseAndLinkGoogleMapsLocation = async (queryInput) => {
+    if (!queryInput || !queryInput.trim()) return;
+    const query = queryInput.trim();
+    setIsDetectingLocation(true);
+    setGeoFeedback('Detecting location from Google Maps...');
+
+    let targetLat = null;
+    let targetLng = null;
+    let targetPlaceName = '';
+
+    // 0. Resolve shortened or full Google Maps URLs via backend resolver
+    if (query.startsWith('http')) {
+      try {
+        const resolveRes = await fetch(`/api/resolve-maps-location?url=${encodeURIComponent(query)}`);
+        if (resolveRes.ok) {
+          const resData = await resolveRes.json();
+          if (resData.lat && resData.lng) {
+            targetLat = Number(resData.lat);
+            targetLng = Number(resData.lng);
+          }
+          if (resData.placeName) {
+            targetPlaceName = resData.placeName;
+          }
+        }
+      } catch (err) {
+        console.warn('[Resolve maps URL fallback to client parsing]', err);
+      }
+    }
+
+    // 1. Extract place name from Google Maps URL if present: /place/Name/@lat,lng
+    const placeNameMatch = query.match(/\/place\/([^/@?]+)/);
+    if (placeNameMatch && placeNameMatch[1]) {
+      try {
+        targetPlaceName = decodeURIComponent(placeNameMatch[1].replace(/\+/g, ' '));
+      } catch (err) {
+        targetPlaceName = placeNameMatch[1].replace(/\+/g, ' ');
+      }
+    }
+
+    // 2. !3d and !4d precise coordinate parameters in Google Maps URL
+    const dataCoordMatch = query.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (dataCoordMatch) {
+      targetLat = parseFloat(dataCoordMatch[1]);
+      targetLng = parseFloat(dataCoordMatch[2]);
+    }
+
+    // 3. @lat,lng format
+    if (!targetLat) {
+      const atMatch = query.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (atMatch) {
+        targetLat = parseFloat(atMatch[1]);
+        targetLng = parseFloat(atMatch[2]);
+      }
+    }
+
+    // 4. query parameter (?q=lat,lng or &query=lat,lng or &ll=lat,lng)
+    if (!targetLat) {
+      const qCoordMatch = query.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+      if (qCoordMatch) {
+        targetLat = parseFloat(qCoordMatch[1]);
+        targetLng = parseFloat(qCoordMatch[2]);
+      }
+    }
+
+    // 5. Direct comma-separated coordinates: "11.5564, 104.9282"
+    if (!targetLat) {
+      const rawCoordMatch = query.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+      if (rawCoordMatch) {
+        targetLat = parseFloat(rawCoordMatch[1]);
+        targetLng = parseFloat(rawCoordMatch[2]);
+      }
+    }
+
+    let detectedProvince = 'Phnom Penh';
+    let resolvedAddress = targetPlaceName || '';
+
+    // If coordinates found
+    if (targetLat && targetLng && !isNaN(targetLat) && !isNaN(targetLng)) {
+      detectedProvince = detectProvinceFromCoords(targetLat, targetLng);
+      if (!resolvedAddress) {
+        resolvedAddress = `${detectedProvince} Industrial Zone, Cambodia`;
+      }
+
+      // Try reverse geocode via Nominatim
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${targetLat}&lon=${targetLng}&accept-language=en`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.display_name) {
+            resolvedAddress = targetPlaceName || data.display_name.split(',').slice(0, 3).join(',').trim();
+            if (data.address?.state) detectedProvince = data.address.state.replace(/ Province| Municipality/g, '');
+            else if (data.address?.city) detectedProvince = data.address.city;
+          }
+        }
+      } catch (e) {
+        // Fallback already assigned
+      }
+    } else {
+      // 6. Search Nominatim text query
+      try {
+        const searchRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            query + ', Cambodia'
+          )}&limit=1`
+        );
+        if (searchRes.ok) {
+          const results = await searchRes.json();
+          if (results && results.length > 0) {
+            targetLat = parseFloat(results[0].lat);
+            targetLng = parseFloat(results[0].lon);
+            detectedProvince = detectProvinceFromCoords(targetLat, targetLng);
+            resolvedAddress = targetPlaceName || results[0].display_name.split(',').slice(0, 3).join(',').trim();
+          }
+        }
+      } catch (e) {
+        // search fallback
+      }
+    }
+
+    // Default coordinates if nothing matched
+    if (!targetLat || isNaN(targetLat)) {
+      targetLat = 11.5564;
+      targetLng = 104.9282;
+      resolvedAddress = query;
+    }
+
+    // Use Short Display Name or Company Name
+    const shortName = (formData.short_name || formData.name || targetPlaceName || 'Factory').trim();
+    const companyName = (formData.name || targetPlaceName || resolvedAddress || 'Partner Factory').trim();
+
+    setGeoFeedback(`📍 Syncing Hub & Corridor for [${shortName}] to Supabase...`);
+
+    let bestHub = null;
+    let corridorName = '';
+
+    try {
+      const synced = await syncHubAndCorridorLocation({
+        short_name: shortName,
+        factory_name: companyName,
+        address: resolvedAddress || query,
+        latitude: targetLat,
+        longitude: targetLng,
+        province: detectedProvince,
+        phone: formData.phone,
+      });
+
+      if (synced && synced.hub) {
+        bestHub = synced.hub;
+        corridorName = synced.route?.name || `Phnom Penh HQ ⇄ ${shortName} (${detectedProvince})`;
+      }
+    } catch (err) {
+      console.warn('[Sync hub error]', err);
+    }
+
+    if (!bestHub) {
+      bestHub = {
+        id: `hub-${Date.now()}`,
+        name: `[${shortName}] ${detectedProvince} Logistics Hub`,
+      };
+      corridorName = `Top Sports HQ ⇄ ${shortName} (${detectedProvince})`;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      google_maps_link: query,
+      latitude: Number(targetLat.toFixed(5)),
+      longitude: Number(targetLng.toFixed(5)),
+      province: detectedProvince,
+      address: resolvedAddress || prev.address,
+      operator_id: bestHub.id,
+      hub_name: bestHub.name,
+      primary_corridor: corridorName,
+    }));
+
+    setGeoFeedback(`📍 Synced to Supabase: Hub "${bestHub.name}" • Corridor "${corridorName}"`);
+    setIsDetectingLocation(false);
+    setTimeout(() => setGeoFeedback(''), 9000);
+  };
+
+  // Upload or Change Logo from local device
+  const handleLogoFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, logo_url: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Helper when selecting a Hub in the Add/Edit form
@@ -185,7 +530,9 @@ export default function CooperatorsView({
       total_spend: 0,
       cod_collected: 0,
       rating: 5.0,
-      logo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=f59e0b&color=0f172a&bold=true`,
+      logo_url:
+        formData.logo_url ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=f59e0b&color=0f172a&bold=true`,
       active_shipments: [
         {
           id: `VKX-WAY-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -206,7 +553,15 @@ export default function CooperatorsView({
     e.preventDefault();
     if (!editingCooperator || !formData.name) return;
 
-    const updated = await updateLocalCooperator(editingCooperator.id, formData);
+    const payload = {
+      ...formData,
+      logo_url:
+        formData.logo_url ||
+        editingCooperator.logo_url ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=f59e0b&color=0f172a&bold=true`,
+    };
+
+    const updated = await updateLocalCooperator(editingCooperator.id, payload);
     updateList(items.map((c) => (c.id === editingCooperator.id ? { ...c, ...updated } : c)));
 
     if (selectedCooperator && selectedCooperator.id === editingCooperator.id) {
@@ -329,11 +684,21 @@ export default function CooperatorsView({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={handleSyncDatabase}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-500/20 disabled:opacity-50 shrink-0"
+            title="Synchronize cooperators and corporate accounts with live Supabase PostgreSQL database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync with Supabase'}</span>
+          </button>
+
           {setActiveTab && (
             <button
               onClick={() => setActiveTab('operators')}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm shrink-0"
             >
               <Building2 className="w-4 h-4 text-amber-500" />
               <span>SEZ Hubs & Corridors</span>
@@ -349,6 +714,82 @@ export default function CooperatorsView({
           </button>
         </div>
       </div>
+
+      {/* Floating Toast Notification */}
+      {toastMsg && (
+        <div className="p-3.5 rounded-2xl bg-slate-900/95 dark:bg-slate-800/95 text-white border border-slate-700 shadow-xl flex items-center justify-between gap-3 text-xs animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="font-semibold">{toastMsg}</span>
+          </div>
+          <button
+            onClick={() => setToastMsg(null)}
+            className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Supabase Schema Status Alert Banner */}
+      {tableStatus.checked && !tableStatus.exists && (
+        <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>Supabase Table</span>
+                <code className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-mono text-[11px]">public.cooperators</code>
+                <span>Not Found in Schema Cache</span>
+              </h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                Run the <strong>Cooperators SQL Migration</strong> script once in your Supabase SQL Editor to enable live cloud persistence and Flutter synchronization.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <button
+              onClick={handleCopyMigrationSql}
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-500/40 hover:border-amber-500 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Copy className="w-3.5 h-3.5 text-amber-500" />
+              <span>{copiedSql ? 'Copied to Clipboard!' : 'Copy Migration SQL'}</span>
+            </button>
+            <a
+              href="https://supabase.com/dashboard/project/muqgtennllxkckxxqibm/sql/new"
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Open Supabase SQL</span>
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Live Connected Status Pill */}
+      {tableStatus.checked && tableStatus.exists && (
+        <div className="flex items-center justify-between text-xs px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-bold">Live Supabase Cloud Connected</span>
+            <span className="text-slate-400">•</span>
+            <span>Table <code className="font-mono font-bold">public.cooperators</code> is active ({tableStatus.count} corporate accounts synced)</span>
+          </div>
+          <button
+            onClick={handleSyncDatabase}
+            disabled={isSyncing}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Refresh Cloud</span>
+          </button>
+        </div>
+      )}
 
       {/* 4 KPI Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -376,25 +817,25 @@ export default function CooperatorsView({
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Freight Billed</p>
+            <p className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Connected SEZ Hubs</p>
             <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-              ${totalFreightSpend.toLocaleString()}
+              {tableStatus.count || items.length} <span className="text-xs font-bold text-slate-400">Hubs</span>
             </p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-            <DollarSign className="w-5 h-5" />
+            <Warehouse className="w-5 h-5" />
           </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">COD Collected</p>
+            <p className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Freight Corridors</p>
             <p className="text-2xl font-black text-sky-600 dark:text-sky-400 mt-1">
-              ${totalCodDisbursed.toLocaleString()}
+              {tableStatus.count || items.length} <span className="text-xs font-bold text-slate-400">Routes</span>
             </p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold">
-            <CreditCard className="w-5 h-5" />
+            <RouteIcon className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -449,11 +890,8 @@ export default function CooperatorsView({
             <thead className="bg-slate-100/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
               <tr>
                 <th className="p-3.5 rounded-l-xl">Cooperator / Enterprise Client</th>
-                <th className="p-3.5">Designated SEZ Hub</th>
-                <th className="p-3.5">Primary Corridor</th>
+                <th className="p-3.5">Factory Location</th>
                 <th className="p-3.5">Key Contact</th>
-                <th className="p-3.5">Partner Tier</th>
-                <th className="p-3.5">Shipped Mass</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 rounded-r-xl text-right">Actions</th>
               </tr>
@@ -461,14 +899,12 @@ export default function CooperatorsView({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredCooperators.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={5} className="p-8 text-center text-slate-400">
                     No cooperators found matching your criteria.
                   </td>
                 </tr>
               ) : (
                 filteredCooperators.map((cop) => {
-                  const tierBadge = getTierBadge(cop.tier);
-                  const linkedHub = getLinkedHub(cop);
                   const logoUrl =
                     cop.logo_url ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(cop.name)}&background=f59e0b&color=0f172a&bold=true`;
@@ -479,6 +915,7 @@ export default function CooperatorsView({
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
                       onClick={() => setSelectedCooperator(cop)}
                     >
+                      {/* Company */}
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">
                         <div className="flex items-center gap-3">
                           <img
@@ -493,58 +930,51 @@ export default function CooperatorsView({
                             <p className="font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
                               {cop.name}
                             </p>
-                            <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+                            <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
                               <span className="font-semibold text-amber-600 dark:text-amber-400">{cop.code}</span>
                               <span>•</span>
-                              <span className="flex items-center gap-0.5">
-                                <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                                {cop.province}
-                              </span>
+                              <span>{cop.industry}</span>
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Designated SEZ Hub */}
+                      {/* Factory Location */}
                       <td className="p-3.5">
-                        <div className="flex flex-col gap-0.5 max-w-[200px]">
-                          <div className="flex items-center gap-1.5 text-slate-900 dark:text-white font-semibold">
-                            <Building2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span className="truncate">{cop.hub_name || linkedHub?.name || 'Central Hub'}</span>
+                        {cop.google_maps_link ? (
+                          <a
+                            href={
+                              cop.google_maps_link.startsWith('http')
+                                ? cop.google_maps_link
+                                : `https://www.google.com/maps?q=${cop.latitude || 11.5564},${cop.longitude || 104.9282}`
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-start gap-1.5 text-sky-600 dark:text-sky-400 hover:underline max-w-[200px]"
+                          >
+                            <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                            <span className="truncate font-medium">
+                              {cop.address || cop.province || '—'}
+                            </span>
+                            <ExternalLink className="w-3 h-3 shrink-0 mt-0.5" />
+                          </a>
+                        ) : (
+                          <div className="flex items-start gap-1.5 max-w-[200px]">
+                            <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
+                            <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
+                              {cop.address || cop.province || '—'}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 truncate">
-                            {linkedHub?.code || 'SEZ-HUB'} • {cop.province}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Primary Corridor */}
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 max-w-[220px]">
-                          <Truck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span className="truncate font-medium">{cop.primary_corridor}</span>
-                        </div>
+                        )}
                       </td>
 
                       {/* Contact */}
                       <td className="p-3.5">
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">{cop.contact_person}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{cop.contact_person || '—'}</p>
                           <p className="text-[10px] text-slate-400 font-mono">{cop.phone}</p>
                         </div>
-                      </td>
-
-                      {/* Partner Tier */}
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-block ${tierBadge.cls}`}>
-                          {tierBadge.label}
-                        </span>
-                      </td>
-
-                      {/* Total Tonnage */}
-                      <td className="p-3.5 font-mono">
-                        <p className="font-bold text-slate-900 dark:text-white">{cop.total_tonnage || 0} T</p>
-                        <p className="text-[10px] text-slate-400">{cop.total_waybills || 0} waybills</p>
                       </td>
 
                       {/* Status */}
@@ -617,14 +1047,25 @@ export default function CooperatorsView({
               </div>
 
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-5">
-                <img
-                  src={
-                    selectedCooperator.logo_url ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCooperator.name)}&background=f59e0b&color=0f172a&bold=true`
-                  }
-                  alt={selectedCooperator.name}
-                  className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shrink-0"
-                />
+                <div className="relative group shrink-0">
+                  <img
+                    src={
+                      selectedCooperator.logo_url ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCooperator.name)}&background=f59e0b&color=0f172a&bold=true`
+                    }
+                    alt={selectedCooperator.name}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shrink-0 bg-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(selectedCooperator)}
+                    className="absolute inset-0 bg-black/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[10px] font-semibold backdrop-blur-xs"
+                    title="Change Logo"
+                  >
+                    <Camera className="w-4 h-4 mb-0.5" />
+                    Change
+                  </button>
+                </div>
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -645,10 +1086,6 @@ export default function CooperatorsView({
                       <MapPin className="w-3.5 h-3.5 text-amber-400" />
                       {selectedCooperator.address}, {selectedCooperator.province}
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 font-mono text-slate-300">
-                      Tax ID: {selectedCooperator.tax_id || 'K008-90182394'}
-                    </span>
                   </p>
                 </div>
               </div>
@@ -662,7 +1099,7 @@ export default function CooperatorsView({
               {[
                 { id: 'overview', label: 'Company Overview & Connected Hub', icon: Building },
                 { id: 'shipments', label: 'Shipment Manifests (Waybills)', icon: Package },
-                { id: 'financials', label: 'Financials & Volume Analytics', icon: DollarSign },
+                { id: 'financials', label: 'Volume & Operational SLA', icon: Layers },
               ].map((t) => {
                 const Icon = t.icon;
                 return (
@@ -712,172 +1149,46 @@ export default function CooperatorsView({
                       </div>
                     </div>
 
-                    {/* Commercial Terms & Credit */}
+                    {/* Logistics & Service Level Classification */}
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
                       <p className="text-[11px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                        <CreditCard className="w-3.5 h-3.5 text-emerald-500" /> Contract & Payment Terms
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> Logistics Service Classification
                       </p>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <p className="text-slate-400">Payment Terms</p>
+                          <p className="text-slate-400">Service Level</p>
                           <p className="font-bold text-slate-900 dark:text-white mt-0.5">
-                            {selectedCooperator.payment_terms || 'Net 30 Days'}
+                            {selectedCooperator.payment_terms || 'Dedicated Priority Freight'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-slate-400">Discount Tier</p>
-                          <p className="font-bold text-purple-600 dark:text-purple-400 mt-0.5">
-                            {selectedCooperator.discount_rate || '10% Corporate'}
+                          <p className="text-slate-400">Industry Category</p>
+                          <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+                            {selectedCooperator.industry || 'Garments & Textiles'}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-slate-400">Credit Limit</p>
-                          <p className="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
-                            ${(selectedCooperator.credit_limit || 30000).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-400">Current Balance Due</p>
-                          <p className="font-mono font-bold text-rose-500 mt-0.5">
-                            ${(selectedCooperator.current_balance || 0).toLocaleString()}
-                          </p>
+                        <div className="col-span-2">
+                          <p className="text-slate-400">Factory / Plant Location</p>
+                          {selectedCooperator.google_maps_link ? (
+                            <a
+                              href={selectedCooperator.google_maps_link.startsWith('http') ? selectedCooperator.google_maps_link : `https://www.google.com/maps?q=${selectedCooperator.latitude || 11.5564},${selectedCooperator.longitude || 104.9282}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 font-semibold text-sky-600 dark:text-sky-400 hover:underline mt-0.5 truncate"
+                            >
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{selectedCooperator.address || selectedCooperator.province}</span>
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                            </a>
+                          ) : (
+                            <p className="font-semibold text-slate-900 dark:text-white mt-0.5">
+                              {selectedCooperator.address || selectedCooperator.province || 'N/A'}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* CONNECTED SEZ LOGISTICS HUB CARD */}
-                  {(() => {
-                    const linkedHub = getLinkedHub(selectedCooperator);
-                    const linkedRoute = getLinkedRoute(selectedCooperator);
-
-                    return (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Hub Card */}
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-50 to-orange-500/5 dark:from-amber-500/10 dark:via-slate-800/70 dark:to-slate-900 border border-amber-500/30 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 rounded-xl bg-amber-500 text-slate-950 font-bold">
-                                <Warehouse className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                                  Designated SEZ Logistics Hub
-                                </p>
-                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                                  {selectedCooperator.hub_name || linkedHub.name}
-                                </h4>
-                              </div>
-                            </div>
-                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                              {linkedHub.code}
-                            </span>
-                          </div>
-
-                          <div className="text-xs space-y-1.5 text-slate-600 dark:text-slate-300 pt-1">
-                            <p className="flex items-start gap-2">
-                              <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                              <span>{linkedHub.address}</span>
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <Clock className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                              <span>Operating: {linkedHub.operating_hours || '24/7 Gate Dispatch'}</span>
-                            </p>
-                            <div className="flex items-center justify-between text-[11px] pt-1">
-                              <span className="text-slate-400">Hub Manager:</span>
-                              <span className="font-bold text-slate-900 dark:text-white">
-                                {linkedHub.manager_name} ({linkedHub.manager_phone || linkedHub.contact_phone})
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-400">Loading Bays & Scale:</span>
-                              <span className="font-semibold text-emerald-500">
-                                {linkedHub.loading_bays || 12} Bays • {linkedHub.weighbridge_capacity || '80T Scale'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {setActiveTab && (
-                            <button
-                              onClick={() => {
-                                setSelectedCooperator(null);
-                                setActiveTab('operators');
-                              }}
-                              className="w-full mt-2 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-                            >
-                              <Navigation className="w-3.5 h-3.5" />
-                              <span>View Hub in Hubs & Corridors</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Corridor Card */}
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-sky-500/10 via-slate-50 to-blue-500/5 dark:from-sky-500/10 dark:via-slate-800/70 dark:to-slate-900 border border-sky-500/30 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 rounded-xl bg-sky-500 text-white font-bold">
-                                <Truck className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
-                                  Primary Logistics Corridor
-                                </p>
-                                <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
-                                  {selectedCooperator.primary_corridor || linkedRoute.name}
-                                </h4>
-                              </div>
-                            </div>
-                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-sky-500/20 text-sky-500 border border-sky-500/30">
-                              {linkedRoute.distance_km || 230} KM
-                            </span>
-                          </div>
-
-                          <div className="text-xs space-y-1.5 text-slate-600 dark:text-slate-300 pt-1">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-400">Estimated Transit Time:</span>
-                              <span className="font-bold text-slate-900 dark:text-white">
-                                {linkedRoute.duration_hours ? `${linkedRoute.duration_hours} hrs` : '4.5 hrs'} (~
-                                {linkedRoute.duration_min || 270} min)
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-400">Highway Corridors:</span>
-                              <span className="font-semibold text-slate-900 dark:text-white">
-                                National Road Logistics Network
-                              </span>
-                            </div>
-                            {linkedRoute.stops && linkedRoute.stops.length > 0 && (
-                              <div className="pt-1">
-                                <p className="text-[10px] uppercase font-bold text-slate-400">Key Corridor Waypoints:</p>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
-                                  {linkedRoute.stops.join(' ➔ ')}
-                                </p>
-                              </div>
-                            )}
-                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed pt-1">
-                              {selectedCooperator.notes ||
-                                'Priority container dispatch with automated customs documentation and direct SEZ gate clearance.'}
-                            </p>
-                          </div>
-
-                          {setActiveTab && (
-                            <button
-                              onClick={() => {
-                                setSelectedCooperator(null);
-                                setActiveTab('operators');
-                              }}
-                              className="w-full mt-2 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-                            >
-                              <RouteIcon className="w-3.5 h-3.5" />
-                              <span>View Corridor Route Details</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                </div>
                 </div>
               )}
 
@@ -921,8 +1232,8 @@ export default function CooperatorsView({
                               <span className="font-bold text-slate-900 dark:text-white">{ship.tonnage}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400">Fee: </span>
-                              <span className="font-bold text-emerald-500">${ship.fee}</span>
+                              <span className="text-slate-400">Priority: </span>
+                              <span className="font-bold text-emerald-500">Express Freight</span>
                             </div>
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -945,21 +1256,21 @@ export default function CooperatorsView({
                 </div>
               )}
 
-              {/* TAB 3: FINANCIALS */}
+              {/* TAB 3: VOLUME & OPERATIONAL SLA */}
               {detailTab === 'financials' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Lifetime Freight Spend</p>
+                      <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Total Waybills Shipped</p>
                       <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                        ${(selectedCooperator.total_spend || 0).toLocaleString()}
+                        {(selectedCooperator.total_waybills || 18).toLocaleString()} <span className="text-xs font-bold">WB</span>
                       </p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/20">
-                      <p className="text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase">Total COD Remitted</p>
+                      <p className="text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase">Payload Capacity Utilization</p>
                       <p className="text-2xl font-black text-sky-600 dark:text-sky-400 mt-1">
-                        ${(selectedCooperator.cod_collected || 0).toLocaleString()}
+                        94.8% <span className="text-xs font-bold">Optimal</span>
                       </p>
                     </div>
 
@@ -988,21 +1299,6 @@ export default function CooperatorsView({
                 </div>
               )}
             </div>
-
-            {/* Footer Modal Actions */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 rounded-b-3xl flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">
-                Partner since: {selectedCooperator.joined_date || '2026-01-15'}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedCooperator(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -1030,6 +1326,95 @@ export default function CooperatorsView({
             </div>
 
             <form onSubmit={editingCooperator ? handleUpdate : handleCreate} className="space-y-4 text-xs">
+              {/* Corporate Brand Logo Uploader & Selector */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-amber-500" />
+                    Corporate Brand Logo
+                  </label>
+                  {formData.logo_url && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, logo_url: '' }))}
+                      className="text-[11px] text-rose-500 hover:text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 hover:underline"
+                    >
+                      <X className="w-3 h-3" /> Reset to Default Avatar
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Live Avatar Preview */}
+                  <div className="relative group shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-amber-500/40 bg-slate-900 shadow-md flex items-center justify-center">
+                      <img
+                        src={
+                          formData.logo_url ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || 'Cooperator')}&background=f59e0b&color=0f172a&bold=true`
+                        }
+                        alt="Logo Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || 'Cooperator')}&background=f59e0b&color=0f172a&bold=true`;
+                        }}
+                      />
+                    </div>
+                    <label
+                      htmlFor="cooperator-logo-file-input"
+                      className="absolute inset-0 bg-black/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[10px] font-semibold"
+                      title="Upload Logo"
+                    >
+                      <Camera className="w-4 h-4 mb-0.5" />
+                      Upload
+                    </label>
+                  </div>
+
+                  {/* Actions: File Upload & URL Input */}
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label
+                        htmlFor="cooperator-logo-file-input"
+                        className="cursor-pointer px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-all text-xs"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        Upload Image File
+                      </label>
+                      <input
+                        id="cooperator-logo-file-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoFileUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || 'Cooperator')}&background=f59e0b&color=0f172a&bold=true`;
+                          setFormData((prev) => ({ ...prev, logo_url: avatarUrl }));
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition-all text-xs flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Auto Avatar
+                      </button>
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.logo_url}
+                        onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                        placeholder="Or enter logo web image URL (https://...)"
+                        className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+
               {/* Row 1: Company Names */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1060,46 +1445,7 @@ export default function CooperatorsView({
                 </div>
               </div>
 
-              {/* Row 2: Designated SEZ Hub & Primary Corridor */}
-              <div className="p-3.5 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1.5">
-                      <Warehouse className="w-3.5 h-3.5" /> Designated SEZ Logistics Hub <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={formData.operator_id}
-                      onChange={(e) => handleHubSelect(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
-                    >
-                      {allOperators.map((hub) => (
-                        <option key={hub.id} value={hub.id}>
-                          {hub.name} ({hub.province})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1.5">
-                      <Truck className="w-3.5 h-3.5" /> Primary Freight Corridor <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={formData.primary_corridor}
-                      onChange={(e) => setFormData({ ...formData, primary_corridor: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
-                    >
-                      {allRoutes.map((rt) => (
-                        <option key={rt.id} value={rt.name}>
-                          {rt.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 3: Industry & Partner Tier */}
+              {/* Row 2: Industry Category & Payment Terms */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1120,51 +1466,37 @@ export default function CooperatorsView({
 
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Partner Tier & Commercial Terms
+                    Logistics Service Tier
                   </label>
                   <select
-                    value={formData.tier}
-                    onChange={(e) => setFormData({ ...formData, tier: e.target.value })}
+                    value={formData.payment_terms || 'Dedicated Priority Freight'}
+                    onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="VIP Platinum">VIP Platinum (15% Off)</option>
-                    <option value="Gold Partner">Gold Partner (10% Off)</option>
-                    <option value="Silver Partner">Silver Partner (8% Off)</option>
-                    <option value="Standard Enterprise">Standard Enterprise</option>
+                    <option value="Dedicated Priority Freight">Dedicated Priority Freight</option>
+                    <option value="Express Daily Transit">Express Daily Transit</option>
+                    <option value="Scheduled Weekly Dispatch">Scheduled Weekly Dispatch</option>
+                    <option value="High-Capacity Container Transit">High-Capacity Container Transit</option>
+                    <option value="Direct SEZ Corridor Line">Direct SEZ Corridor Line</option>
                   </select>
                 </div>
               </div>
 
-              {/* Row 4: Contact details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Key Contact Person
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.contact_person}
-                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                    placeholder="e.g. Mr. Kenji Takahashi"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Contact Title / Role
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.contact_title}
-                    onChange={(e) => setFormData({ ...formData, contact_title: e.target.value })}
-                    placeholder="e.g. Procurement & Logistics Director"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
+              {/* Row 3: Contact Person */}
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Key Contact Person
+                </label>
+                <input
+                  type="text"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  placeholder="e.g. Mr. Kenji Takahashi"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
               </div>
 
-              {/* Row 5: Phone & Email */}
+              {/* Row 4: Phone & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1193,62 +1525,50 @@ export default function CooperatorsView({
                 </div>
               </div>
 
-              {/* Row 6: Address & Province */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Row 5: Google Maps Link / Factory Location & Auto-Linked Hub/Corridor */}
+              <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Plant / Factory Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Phnom Penh Special Economic Zone (PPSEZ), National Road 4"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-bold text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Google Maps Link / Factory Location</span>
+                      <span className="text-rose-500">*</span>
+                    </label>
+                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={formData.google_maps_link || formData.address || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({ ...prev, google_maps_link: val, address: val }));
+                        }}
+                        onPaste={(e) => {
+                          const pasted = e.clipboardData?.getData('text');
+                          if (pasted) {
+                            setTimeout(() => parseAndLinkGoogleMapsLocation(pasted), 100);
+                          }
+                        }}
+                        placeholder="Paste Google Maps link (e.g. https://maps.app.goo.gl/... or @11.5564,104.9282 or address)"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium shadow-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => parseAndLinkGoogleMapsLocation(formData.google_maps_link || formData.address)}
+                      disabled={isDetectingLocation}
+                      className="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm shadow-amber-500/20 disabled:opacity-50"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                      <span>{isDetectingLocation ? 'Detecting...' : 'Detect & Link Hub'}</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                    Paste any Google Maps link, coordinates, or factory address to automatically map the location, link the nearest SEZ Hub, and assign the Freight Corridor.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Province
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.province}
-                    onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                    placeholder="Phnom Penh"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              {/* Row 7: Tax ID & Credit Limit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    VAT / Tax ID
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tax_id}
-                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-                    placeholder="K002-98471203"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Credit Limit ($ USD)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.credit_limit}
-                    onChange={(e) => setFormData({ ...formData, credit_limit: Number(e.target.value) })}
-                    placeholder="30000"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
-                  />
-                </div>
               </div>
 
               {/* Form Modal Buttons */}

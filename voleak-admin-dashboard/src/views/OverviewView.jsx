@@ -165,7 +165,7 @@ const weeklyVelocity = [
 ];
 
 // Custom Glowing Tooltip for Charts
-function CustomChartTooltip({ active, payload, label, unit = '$' }) {
+function CustomChartTooltip({ active, payload, label, unit = '' }) {
   if (active && payload && payload.length) {
     return (
       <div className="p-3.5 rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl text-xs space-y-2 min-w-[180px]">
@@ -181,13 +181,11 @@ function CustomChartTooltip({ active, payload, label, unit = '$' }) {
                 <span className="text-slate-400 font-medium capitalize">{item.name}:</span>
               </div>
               <span className="font-bold text-white font-mono">
-                {unit === '$' && item.name.toLowerCase().includes('tonnage')
+                {item.name.toLowerCase().includes('tonnage')
                   ? `${item.value} Tons`
-                  : unit === '$' && item.name.toLowerCase().includes('waybill')
+                  : item.name.toLowerCase().includes('waybill')
                   ? `${item.value} WB`
-                  : typeof item.value === 'number' && unit === '$'
-                  ? `$${item.value.toLocaleString()}`
-                  : `${item.value}${unit !== '$' ? unit : ''}`}
+                  : `${item.value}${unit}`}
               </span>
             </div>
           ))}
@@ -210,7 +208,7 @@ export default function OverviewView({
 
   // State Controls
   const [timeRange, setTimeRange] = useState('12M'); // '7D' | '30D' | '12M'
-  const [activeChartMetric, setActiveChartMetric] = useState('financial'); // 'financial' | 'tonnage' | 'waybills'
+  const [activeChartMetric, setActiveChartMetric] = useState('tonnage'); // 'tonnage' | 'waybills'
   const [corridorViewMode, setCorridorViewMode] = useState('volume'); // 'volume' | 'tonnage'
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(null);
   const [manifestFilter, setManifestFilter] = useState('all'); // 'all' | 'in_progress' | 'completed'
@@ -334,7 +332,7 @@ export default function OverviewView({
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  Voleak Express Freight Command Center
+                  Top Sports Textile Freight Command Center
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -387,75 +385,9 @@ export default function OverviewView({
         </div>
       </div>
 
-      {/* 2. SIX EXECUTIVE KPI METRIC CARDS WITH SPARKLINE TRENDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5">
-        {/* Card 1: Total Freight Revenue */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Freight Revenue
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              ${totalRevenue.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="text-[10px] font-extrabold text-emerald-500 flex items-center bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                <ArrowUpRight className="w-3 h-3 mr-0.5" /> +18.4%
-              </span>
-              <span className="text-[10px] text-slate-400">vs last period</span>
-            </div>
-          </div>
-          <div className="h-10 mt-3 -mx-2 -mb-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sevenDaysData}>
-                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fill="#10b981" fillOpacity={0.15} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Card 2: Total COD Collected */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              COD Value
-            </span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              ${totalCod.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="text-[10px] font-extrabold text-purple-500 flex items-center bg-purple-500/10 px-1.5 py-0.5 rounded">
-                <ArrowUpRight className="w-3 h-3 mr-0.5" /> +12.6%
-              </span>
-              <span className="text-[10px] text-slate-400">Remitted</span>
-            </div>
-          </div>
-          <div className="h-10 mt-3 -mx-2 -mb-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sevenDaysData}>
-                <Area type="monotone" dataKey="cod" stroke="#8b5cf6" strokeWidth={2} fill="#8b5cf6" fillOpacity={0.15} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Card 3: Waybills & Consignments */}
+      {/* 2. FOUR EXECUTIVE LOGISTICS KPI METRIC CARDS WITH SPARKLINE TRENDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Card 1: Waybills & Consignments */}
         <motion.div
           whileHover={{ y: -3 }}
           onClick={() => setActiveTab('bookings')}
@@ -606,27 +538,17 @@ export default function OverviewView({
                 <BarChart3 className="w-5 h-5" />
               </div>
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
-                Logistics & Financial Throughput Analytics
+                Logistics & Freight Throughput Analytics
               </h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Multi-dimensional telemetry tracking freight revenue, COD settlement, cargo tonnage, and fleet dispatch curves.
+              Multi-dimensional telemetry tracking cargo payload tonnage, fleet velocity, and consignment dispatch curves.
             </p>
           </div>
 
           {/* Metric Selector Tabs */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1">
-              <button
-                onClick={() => setActiveChartMetric('financial')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeChartMetric === 'financial'
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Revenue & COD ($)
-              </button>
               <button
                 onClick={() => setActiveChartMetric('tonnage')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -654,73 +576,7 @@ export default function OverviewView({
         {/* Main Chart Area */}
         <div className="h-80 sm:h-96 w-full mt-6">
           <ResponsiveContainer width="100%" height="100%">
-            {activeChartMetric === 'financial' ? (
-              <AreaChart data={activeTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorCod" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
-                <XAxis
-                  dataKey={timeRange === '12M' ? 'month' : 'day'}
-                  stroke="#94a3b8"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
-                />
-                <YAxis
-                  stroke="#94a3b8"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomChartTooltip unit="$" />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: 16, fontSize: 12 }}
-                  iconType="circle"
-                  formatter={(value) => <span className="text-slate-700 dark:text-slate-300 font-semibold">{value}</span>}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Freight Revenue"
-                  stroke="#f59e0b"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorRevenue)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="cod"
-                  name="COD Escrow"
-                  stroke="#8b5cf6"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#colorCod)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  name="Fleet Operating Cost"
-                  stroke="#06b6d4"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  fillOpacity={1}
-                  fill="url(#colorExpense)"
-                />
-              </AreaChart>
-            ) : activeChartMetric === 'tonnage' ? (
+            {activeChartMetric === 'tonnage' ? (
               <AreaChart data={activeTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorTonnage" x1="0" y1="0" x2="0" y2="1">
@@ -776,15 +632,15 @@ export default function OverviewView({
         <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50">
             <span className="text-[10px] uppercase font-bold text-slate-400">Peak Transit Month</span>
-            <p className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mt-0.5">December ($114.5k)</p>
+            <p className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mt-0.5">December (1,840 Tons)</p>
           </div>
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400">Avg Daily Revenue</span>
-            <p className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">$3,820 / Day</p>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Avg Daily Tonnage</span>
+            <p className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">48.5 Tons / Day</p>
           </div>
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400">Net Operating Margin</span>
-            <p className="text-sm sm:text-base font-extrabold text-amber-500 mt-0.5">62.8% Gross Margin</p>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Fleet Capacity Load</span>
+            <p className="text-sm sm:text-base font-extrabold text-amber-500 mt-0.5">89.2% Utilization</p>
           </div>
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50">
             <span className="text-[10px] uppercase font-bold text-slate-400">Weighbridge SLA</span>

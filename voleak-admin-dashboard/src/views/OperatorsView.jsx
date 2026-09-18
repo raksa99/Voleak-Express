@@ -51,10 +51,29 @@ import {
   addLocalRoute,
   updateLocalRoute,
   deleteLocalRoute,
-  DEFAULT_COOPERATORS,
 } from '../lib/supabaseClient';
 import SweetAlertModal from '../components/SweetAlertModal';
 import { fetchCambodiaDomesticRoute } from '../lib/cambodiaRouter';
+
+// Helper to reliably extract and display the Cooperator Short Display Name on Hubs & Corridors
+export const getShortDisplayName = (item, cops = []) => {
+  if (!item) return '';
+  const bracketMatch = item.name?.match(/^\[(.*?)\]/);
+  if (bracketMatch && bracketMatch[1]) return bracketMatch[1];
+  const destMatch = item.destination?.match(/^\[(.*?)\]/);
+  if (destMatch && destMatch[1]) return destMatch[1];
+  const matched = (cops || []).find(
+    (c) =>
+      c.operator_id === item.id ||
+      c.operator_id === item.operator_id ||
+      c.hub_name === item.name ||
+      c.primary_corridor === item.name ||
+      (item.province && c.province && c.province.toLowerCase() === item.province.toLowerCase())
+  );
+  if (matched?.short_name) return matched.short_name;
+  if (matched?.name) return matched.name;
+  return item.short_name || '';
+};
 
 // Calculate distance between two GPS coordinates in KM (Haversine formula)
 const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
@@ -72,13 +91,13 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
   return (R * c).toFixed(1);
 };
 
-// Company Headquarters (Origin for Dispatch Routes)
+// Company Headquarters (Origin for Dispatch Routes - Top Sports Textile HQ)
 const COMPANY_HQ = {
-  name: 'Voleak Express Central Logistics HQ',
-  code: 'VOLEAK-HQ',
-  latitude: 11.5564,
-  longitude: 104.9282,
-  address: 'National Road 4 Corridor, Phnom Penh Logistics Base',
+  name: 'Top Sports Textile HQ',
+  code: 'TOPSPORT-HQ',
+  latitude: 11.0479485,
+  longitude: 106.1204302,
+  address: 'Top Sports Textile, Bavet, Svay Rieng (https://maps.app.goo.gl/TmcZJHpCzd3KCjEr7)',
   manager_name: 'Bong Leak (Director)',
   manager_phone: '+855 12 888 999',
 };
@@ -221,7 +240,7 @@ function LocationPickerEvents({ position, onLocationChange }) {
     !isNaN(position[0]) &&
     !isNaN(position[1])
       ? position
-      : [11.5564, 104.9282];
+      : [COMPANY_HQ.latitude, COMPANY_HQ.longitude];
 
   return (
     <Marker
@@ -258,7 +277,7 @@ export default function OperatorsView({
 }) {
   const { t } = useLanguage();
 
-  const allCooperators = cooperators && cooperators.length > 0 ? cooperators : DEFAULT_COOPERATORS;
+  const allCooperators = Array.isArray(cooperators) ? cooperators : [];
 
   // Active View Tab: 'driverMap' (Interactive Driver Map) | 'directory' (Cards) | 'corridors' (Industrial Corridors)
   const [activeTab, setActiveTab] = useState('driverMap');
@@ -288,12 +307,23 @@ export default function OperatorsView({
   });
   const [stopInput, setStopInput] = useState('');
 
-  // Dynamic Company HQ loaded from Settings & localStorage
+  // Dynamic Company HQ loaded from Settings & localStorage (Default: Top Sports Textile HQ)
   const [companyHQ, setCompanyHQ] = useState(() => {
     const saved = localStorage.getItem('voleak_company_profile');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Automatically migrate if using old default Phnom Penh coordinates
+        if (
+          !parsed.latitude ||
+          (Math.abs(Number(parsed.latitude) - 11.5564) < 0.01 &&
+            Math.abs(Number(parsed.longitude) - 104.9282) < 0.01)
+        ) {
+          const updated = { ...parsed, ...COMPANY_HQ };
+          localStorage.setItem('voleak_company_profile', JSON.stringify(updated));
+          return updated;
+        }
+        return parsed;
       } catch (e) {}
     }
     return COMPANY_HQ;
@@ -335,8 +365,8 @@ export default function OperatorsView({
     }
 
     let isMounted = true;
-    const originLng = Number(companyHQ?.longitude) || 104.9282;
-    const originLat = Number(companyHQ?.latitude) || 11.5564;
+    const originLng = Number(companyHQ?.longitude) || COMPANY_HQ.longitude;
+    const originLat = Number(companyHQ?.latitude) || COMPANY_HQ.latitude;
     const destLng = Number(selectedHubForDriver.longitude);
     const destLat = Number(selectedHubForDriver.latitude);
 
@@ -721,16 +751,16 @@ export default function OperatorsView({
 
   // Route Handlers
   const resetRouteForm = () => {
-    const defaultOrigin = allOperators[0]?.name || 'Phnom Penh Central Hub';
-    const defaultDest = allOperators[1]?.name || 'Sihanoukville Deep Sea Port';
+    const defaultOrigin = companyHQ?.name || COMPANY_HQ.name;
+    const defaultDest = allOperators[0]?.name || '';
     setRouteFormData({
       name: '',
       origin: defaultOrigin,
       destination: defaultDest,
-      distance_km: 187,
+      distance_km: 167,
       duration_min: 150,
-      operator_id: allOperators[0]?.id || 'op-1',
-      stops: ['Primary Highway Weighbridge', 'Expressway Toll Plaza Gate 1'],
+      operator_id: allOperators[0]?.id || '',
+      stops: ['Top Sports Central Staging Base', 'NR1 Highway Weighbridge Toll Gate'],
       status: 'active',
     });
     setStopInput('');
@@ -1018,7 +1048,10 @@ export default function OperatorsView({
                     !isNaN(Number(selectedHubForDriver.latitude)) &&
                     !isNaN(Number(selectedHubForDriver.longitude))
                       ? [Number(selectedHubForDriver.latitude), Number(selectedHubForDriver.longitude)]
-                      : [11.5564, 104.9282]
+                      : [
+                          Number(companyHQ?.latitude) || COMPANY_HQ.latitude,
+                          Number(companyHQ?.longitude) || COMPANY_HQ.longitude,
+                        ]
                   }
                   zoom={selectedHubForDriver ? 11 : 7}
                 />
@@ -1030,7 +1063,10 @@ export default function OperatorsView({
 
                 {/* 1. Company Headquarters Marker (Origin) */}
                 <Marker
-                  position={[Number(companyHQ?.latitude) || 11.5564, Number(companyHQ?.longitude) || 104.9282]}
+                  position={[
+                    Number(companyHQ?.latitude) || COMPANY_HQ.latitude,
+                    Number(companyHQ?.longitude) || COMPANY_HQ.longitude,
+                  ]}
                   icon={createCompanyHQMarkerIcon()}
                 >
                   <Popup>
@@ -1083,22 +1119,32 @@ export default function OperatorsView({
                                 {hub.status}
                               </span>
                             </div>
+                            {(() => {
+                              const shortName = getShortDisplayName(hub, allCooperators);
+                              if (!shortName) return null;
+                              return (
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 font-extrabold text-[10px]">
+                                  🏢 Short Name: {shortName}
+                                </div>
+                              );
+                            })()}
                             <h4 className="font-bold text-slate-900">{hub.name}</h4>
                             <p className="text-slate-600 text-[11px]">{hub.address}</p>
                             <div className="pt-1 text-[11px] text-slate-500 font-medium">
                               Manager: <strong>{hub.manager_name}</strong> ({hub.manager_phone})
                             </div>
                             {(() => {
+                              const shortName = getShortDisplayName(hub, allCooperators);
                               const matchingCop = allCooperators.find(
                                 (c) =>
                                   c.operator_id === hub.id ||
                                   (hub.province && c.province && c.province.toLowerCase() === hub.province.toLowerCase())
                               );
-                              if (!matchingCop) return null;
+                              if (!matchingCop && !shortName) return null;
                               return (
                                 <div className="pt-1 text-[10px] text-purple-700 dark:text-purple-400 font-semibold flex items-center gap-1 border-t border-slate-100 dark:border-slate-800 mt-1">
                                   <Handshake className="w-3 h-3 text-purple-500" />
-                                  <span>Partner: {matchingCop.name}</span>
+                                  <span>Partner: {shortName || matchingCop?.name}</span>
                                 </div>
                               );
                             })()}
@@ -1146,9 +1192,20 @@ export default function OperatorsView({
                   {/* Selected Hub Title */}
                   <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        {selectedHubForDriver.code}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          {selectedHubForDriver.code}
+                        </span>
+                        {(() => {
+                          const shortName = getShortDisplayName(selectedHubForDriver, allCooperators);
+                          if (!shortName) return null;
+                          return (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950 shadow-sm">
+                              🏢 {shortName}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1.5">
                         {selectedHubForDriver.name}
                       </h3>
@@ -1179,7 +1236,15 @@ export default function OperatorsView({
                           <p className="text-base font-black text-slate-900 dark:text-white">
                             {routingStats.loading
                               ? 'Calculating Road Route...'
-                              : `${routingStats.distanceKm || calculateDistanceKm(11.5564, 104.9282, selectedHubForDriver.latitude, selectedHubForDriver.longitude)} km`}
+                              : `${
+                                  routingStats.distanceKm ||
+                                  calculateDistanceKm(
+                                    Number(companyHQ?.latitude) || COMPANY_HQ.latitude,
+                                    Number(companyHQ?.longitude) || COMPANY_HQ.longitude,
+                                    selectedHubForDriver.latitude,
+                                    selectedHubForDriver.longitude
+                                  )
+                                } km`}
                           </p>
                         </div>
                       </div>
@@ -1202,7 +1267,7 @@ export default function OperatorsView({
                         {routingStats.summary || 'Cambodian National Highway Corridor'}
                       </span>
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&origin=${companyHQ?.latitude || 11.5564},${companyHQ?.longitude || 104.9282}&destination=${selectedHubForDriver.latitude},${selectedHubForDriver.longitude}`}
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${companyHQ?.latitude || COMPANY_HQ.latitude},${companyHQ?.longitude || COMPANY_HQ.longitude}&destination=${selectedHubForDriver.latitude},${selectedHubForDriver.longitude}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1 shrink-0 transition-all"
@@ -1310,7 +1375,13 @@ export default function OperatorsView({
                           </div>
                         </div>
                         <span className="font-mono text-amber-500 font-bold">
-                          {calculateDistanceKm(11.5564, 104.9282, hub.latitude, hub.longitude)} km
+                          {calculateDistanceKm(
+                            Number(companyHQ?.latitude) || COMPANY_HQ.latitude,
+                            Number(companyHQ?.longitude) || COMPANY_HQ.longitude,
+                            hub.latitude,
+                            hub.longitude
+                          )}{' '}
+                          km
                         </span>
                       </div>
                     ))}
@@ -1339,6 +1410,17 @@ export default function OperatorsView({
                       <Building2 className="w-6 h-6" />
                     </div>
                     <div>
+                      {(() => {
+                        const shortName = getShortDisplayName(op, allCooperators);
+                        if (!shortName) return null;
+                        return (
+                          <div className="mb-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1">
+                              🏢 Short Name: {shortName}
+                            </span>
+                          </div>
+                        );
+                      })()}
                       <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
                         {op.name}
                       </h3>
@@ -1549,9 +1631,20 @@ export default function OperatorsView({
                           <Navigation className="w-6 h-6" />
                         </div>
                         <div>
-                          <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
-                            {rt.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                              {rt.name}
+                            </h3>
+                            {(() => {
+                              const shortName = getShortDisplayName(rt, allCooperators);
+                              if (!shortName) return null;
+                              return (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950 shadow-sm shrink-0">
+                                  🏢 {shortName}
+                                </span>
+                              );
+                            })()}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                             <Building className="w-3.5 h-3.5 text-amber-500" />
                             <span>Hub: {hub ? hub.name : 'Cambodian National Logistics Base'}</span>
@@ -1625,27 +1718,29 @@ export default function OperatorsView({
                       </div>
                     </div>
 
-                    {/* Linked Cooperator / Factory Client */}
+                    {/* Linked Cooperator / Factory Client with Short Display Name */}
                     {(() => {
+                      const shortName = getShortDisplayName(rt, allCooperators);
                       const matchedCops = allCooperators.filter(
                         (c) =>
                           c.primary_corridor === rt.name ||
                           (rt.destination && c.province && rt.destination.toLowerCase().includes(c.province.toLowerCase()))
                       );
-                      if (matchedCops.length === 0) return null;
+                      const displayPartner = shortName || matchedCops[0]?.short_name || matchedCops[0]?.name;
+                      if (!displayPartner) return null;
                       return (
-                        <div className="p-2.5 rounded-xl bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
-                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 text-[11px]">
-                            <Handshake className="w-3.5 h-3.5 text-purple-500" /> Active Shipping Client:
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 flex items-center justify-between text-xs">
+                          <span className="text-amber-800 dark:text-amber-300 flex items-center gap-1.5 text-[11px] font-semibold">
+                            <Handshake className="w-3.5 h-3.5 text-amber-500" /> Short Display Name:
                           </span>
                           <button
                             onClick={() => {
                               if (setDashboardTab) setDashboardTab('cooperators');
                             }}
-                            className="font-bold text-purple-600 dark:text-purple-400 hover:underline truncate max-w-[210px] text-right"
+                            className="font-extrabold text-amber-600 dark:text-amber-400 hover:underline truncate max-w-[210px] text-right"
                             title="View in Cooperators tab"
                           >
-                            {matchedCops[0]?.name}
+                            🏢 {displayPartner}
                           </button>
                         </div>
                       );

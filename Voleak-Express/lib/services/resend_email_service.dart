@@ -30,12 +30,12 @@ class ResendEmailService {
 <html>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
   <div style="background: #1A73E8; padding: 24px; text-align: center; border-radius: 12px 12px 0 0;">
-    <h1 style="color: #fff; margin: 0; font-size: 24px;">Voleak Express</h1>
+    <h1 style="color: #fff; margin: 0; font-size: 24px;">Top Sports Textile</h1>
     <p style="color: #BBDEFB; margin: 4px 0 0;">Official Receipt</p>
   </div>
   <div style="padding: 24px; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px;">
     <p>Dear <strong>$passengerName</strong>,</p>
-    <p>Thank you for choosing Voleak Express. Your booking has been confirmed.</p>
+    <p>Thank you for choosing Top Sports Textile. Your booking has been confirmed.</p>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
       <tr><td style="padding: 8px 0; color: #6B7280;">Route</td><td style="padding: 8px 0; font-weight: 600;">$origin to $destination</td></tr>
       <tr><td style="padding: 8px 0; color: #6B7280;">Date</td><td style="padding: 8px 0; font-weight: 600;">$tripDate</td></tr>
@@ -46,7 +46,7 @@ class ResendEmailService {
     </table>
     <p style="font-size: 12px; color: #9CA3AF;">Your receipt is attached as a PDF. Show the QR code when boarding.</p>
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 16px 0;">
-    <p style="font-size: 11px; color: #9CA3AF;">Voleak Express &mdash; Safe travels!</p>
+    <p style="font-size: 11px; color: #9CA3AF;">Top Sports Textile &mdash; Safe travels!</p>
   </div>
 </body>
 </html>
@@ -54,7 +54,7 @@ class ResendEmailService {
 
     final payload = <String, dynamic>{
       'to': to,
-      'subject': 'Your Voleak Express Receipt - $bookingRef',
+      'subject': 'Your Top Sports Textile Receipt - $bookingRef',
       'html': htmlBody,
       'attachments': [
         {

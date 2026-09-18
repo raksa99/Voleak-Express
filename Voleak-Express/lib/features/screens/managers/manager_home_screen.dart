@@ -51,7 +51,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
         _operatorId = 'demo-operator-id';
         _operatorInfo = {
           'id': 'demo-operator-id',
-          'name': 'Voleak Express HQ',
+          'name': 'Top Sports Textile HQ',
           'status': 'active',
           'logo_url': null,
         };

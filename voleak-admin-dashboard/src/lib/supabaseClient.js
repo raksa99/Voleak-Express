@@ -42,103 +42,7 @@ export async function checkSupabaseConnection() {
 // Default Fallback Datasets for High-Availability
 // -------------------------------------------------------------
 
-export const DEFAULT_OPERATORS = [
-  {
-    id: 'op-1',
-    name: 'Phnom Penh Central Freight Hub',
-    code: 'HUB-PP-01',
-    province: 'Phnom Penh',
-    address: 'National Road 4 Logistics Corridor, Phnom Penh Base',
-    contact_phone: '+855 12 888 771',
-    manager_name: 'Bong Leak',
-    manager_phone: '+855 12 888 999',
-    operating_hours: '24/7 Gate Dispatch',
-    loading_bays: 16,
-    weighbridge_capacity: '80 Tons Axle Scale',
-    amenities: ['Driver Rest Lounge', 'Diesel Fueling Station', 'Heavy Forklift Bay', '24/7 Security & CCTV'],
-    fleet_count: 6,
-    rating: 4.9,
-    status: 'active',
-    latitude: 11.5564,
-    longitude: 104.9282,
-  },
-  {
-    id: 'op-2',
-    name: 'Sihanoukville Autonomous Port Deep Sea Terminal',
-    code: 'HUB-SHV-02',
-    province: 'Preah Sihanouk',
-    address: 'Port Maritime Zone 3, Sihanoukville Autonomous Port',
-    contact_phone: '+855 34 933 002',
-    manager_name: 'Sokha Meng',
-    manager_phone: '+855 12 888 002',
-    operating_hours: '24/7 Vessel Staging',
-    loading_bays: 24,
-    weighbridge_capacity: '100 Tons Container Scale',
-    amenities: ['Container Reach Stacker', 'Reefer Power Plugs', 'Customs Clearance Office', 'Bonded Yard'],
-    fleet_count: 8,
-    rating: 5.0,
-    status: 'active',
-    latitude: 10.6253,
-    longitude: 103.5234,
-  },
-  {
-    id: 'op-3',
-    name: 'Bavet Border Special Economic Zone Depot',
-    code: 'HUB-BVT-03',
-    province: 'Svay Rieng',
-    address: 'National Highway 1, Manhattan Special Economic Zone',
-    contact_phone: '+855 44 711 003',
-    manager_name: 'Vathanak Keo',
-    manager_phone: '+855 77 999 003',
-    operating_hours: '06:00 - 22:00 Daily',
-    loading_bays: 12,
-    weighbridge_capacity: '60 Tons Scale',
-    amenities: ['Cross-Border Transfer Bay', 'Driver Canteen', 'Express Inspection'],
-    fleet_count: 4,
-    rating: 4.8,
-    status: 'active',
-    latitude: 11.0821,
-    longitude: 105.8112,
-  },
-  {
-    id: 'op-4',
-    name: 'Poipet SEZ Cargo Logistics Depot',
-    code: 'HUB-PPT-04',
-    province: 'Banteay Meanchey',
-    address: 'National Road 5, Sanco Poipet Special Economic Zone',
-    contact_phone: '+855 54 822 004',
-    manager_name: 'Bopha Long',
-    manager_phone: '+855 88 444 004',
-    operating_hours: '06:00 - 20:00 Daily',
-    loading_bays: 10,
-    weighbridge_capacity: '60 Tons Scale',
-    amenities: ['Thai Transit Staging', 'Covered Warehouse', 'Security'],
-    fleet_count: 3,
-    rating: 4.7,
-    status: 'active',
-    latitude: 13.6558,
-    longitude: 102.5627,
-  },
-  {
-    id: 'op-5',
-    name: 'Siem Reap Regional Freight Center',
-    code: 'HUB-REP-05',
-    province: 'Siem Reap',
-    address: 'National Road 6, Airport Logistics Bypass',
-    contact_phone: '+855 63 966 005',
-    manager_name: 'Sopheak Roth',
-    manager_phone: '+855 93 222 005',
-    operating_hours: '07:00 - 19:00 Daily',
-    loading_bays: 8,
-    weighbridge_capacity: '50 Tons Scale',
-    amenities: ['Cold Storage Warehouse', 'Fleet Maintenance Pit'],
-    fleet_count: 3,
-    rating: 4.8,
-    status: 'active',
-    latitude: 13.3671,
-    longitude: 103.8448,
-  },
-];
+export const DEFAULT_OPERATORS = [];
 
 export const DEFAULT_USERS = [
   {
@@ -151,6 +55,12 @@ export const DEFAULT_USERS = [
     operator_id: 'op-1',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    national_id: '010001001',
+    khmer_name: 'បង លក្ខណ៍',
+    dob: '1988-01-10',
+    gender: 'Male',
+    address: 'Khan Daun Penh, Phnom Penh',
+    id_expiry: '2038-01-10',
     created_at: '2026-08-01T08:00:00Z',
   },
   {
@@ -163,6 +73,13 @@ export const DEFAULT_USERS = [
     operator_id: 'op-2',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    national_id: '010892415',
+    khmer_name: 'ម៉េង សុខា',
+    dob: '1994-08-15',
+    gender: 'Male',
+    address: 'Sangkat Boeung Keng Kang 1, Phnom Penh',
+    id_expiry: '2034-08-15',
+    id_card_image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
     created_at: '2026-08-01T08:00:00Z',
   },
   {
@@ -175,6 +92,13 @@ export const DEFAULT_USERS = [
     operator_id: 'op-1',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+    national_id: '020745192',
+    khmer_name: 'ចាន់ ដារ៉ា',
+    dob: '1996-03-22',
+    gender: 'Male',
+    address: 'Sangkat Svay Pao, Battambang',
+    id_expiry: '2036-03-22',
+    id_card_image: 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=600&q=80',
     created_at: '2026-08-01T08:00:00Z',
   },
   {
@@ -203,250 +127,9 @@ export const DEFAULT_USERS = [
   },
 ];
 
-export const DEFAULT_COOPERATORS = [
-  {
-    id: '55555555-5555-5555-5555-555555555555',
-    name: 'Manhattan Textile Mills Ltd',
-    factory_name: 'Manhattan Textile Mills Ltd',
-    short_name: 'Manhattan Garments',
-    code: 'COP-MANHATTAN-01',
-    industry: 'Garments & Textiles',
-    category: 'Garment & Apparel Manufacturing',
-    tier: 'VIP Platinum',
-    discount_rate: '15% Off',
-    payment_terms: 'Net 30 Days',
-    credit_limit: 50000,
-    current_balance: 12400,
-    contact_person: 'Mr. Kenji Takahashi',
-    contact_title: 'Procurement & Supply Chain Director',
-    phone: '+855 23 881 200',
-    email: 'procurement@manhattanmills.kh',
-    province: 'Phnom Penh',
-    address: 'Phnom Penh Special Economic Zone (PPSEZ), National Road 4',
-    latitude: 11.5564,
-    longitude: 104.9282,
-    operator_id: 'op-1',
-    hub_name: 'Phnom Penh Central Freight Hub',
-    primary_corridor: 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
-    tax_id: 'K002-98471203',
-    notes: 'Primary PPSEZ partner with dedicated 40ft container dispatch direct to Sihanoukville Port Deep Sea Terminal.',
-    status: 'active',
-    rating: 5.0,
-    total_waybills: 148,
-    total_tonnage: 420.5,
-    total_spend: 58200.0,
-    cod_collected: 18500.0,
-    joined_date: '2026-01-15',
-    logo_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=150&q=80',
-    active_shipments: [
-      { id: 'VKX-WAY-1092', destination: 'Sihanoukville Port Deep Sea Terminal', tonnage: '24.5 Tons', fee: 420, status: 'In Transit' },
-      { id: 'VKX-WAY-1094', destination: 'Bavet Border Special Economic Zone Depot', tonnage: '18.0 Tons', fee: 310, status: 'Delivered' },
-    ],
-  },
-  {
-    id: 'cop-2',
-    name: 'Crystal Garment International Ltd',
-    factory_name: 'Crystal Garment International Ltd',
-    short_name: 'Crystal Garments',
-    code: 'COP-CRYSTAL-02',
-    industry: 'Garments & Textiles',
-    category: 'Activewear Export Partner',
-    tier: 'Gold Partner',
-    discount_rate: '10% Off',
-    payment_terms: 'Net 30 Days',
-    credit_limit: 35000,
-    current_balance: 8200,
-    contact_person: 'Ms. Lin Mei-Hua',
-    contact_title: 'Export Logistics Head',
-    phone: '+855 34 934 888',
-    email: 'shipping@crystalgarments.kh',
-    province: 'Preah Sihanouk',
-    address: 'Port Maritime Zone 3, Sihanoukville Port SEZ Industrial Park',
-    latitude: 10.6253,
-    longitude: 103.5234,
-    operator_id: 'op-2',
-    hub_name: 'Sihanoukville Autonomous Port Deep Sea Terminal',
-    primary_corridor: 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
-    tax_id: 'K003-81927344',
-    notes: 'Deep-sea maritime terminal staging for international container export vessels and textile raw material intake.',
-    status: 'active',
-    rating: 4.9,
-    total_waybills: 96,
-    total_tonnage: 310.0,
-    total_spend: 41500.0,
-    cod_collected: 12300.0,
-    joined_date: '2026-02-10',
-    logo_url: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=150&q=80',
-    active_shipments: [
-      { id: 'VKX-WAY-1095', destination: 'Phnom Penh Central Freight Hub', tonnage: '28.0 Tons', fee: 480, status: 'Delivered' },
-    ],
-  },
-  {
-    id: 'cop-3',
-    name: 'Shenzhou International SEZ Plant',
-    factory_name: 'Shenzhou International SEZ Plant',
-    short_name: 'Shenzhou SEZ',
-    code: 'COP-SHENZHOU-03',
-    industry: 'Garments & Textiles',
-    category: 'Sportswear Knit & Assembly',
-    tier: 'Gold Partner',
-    discount_rate: '10% Off',
-    payment_terms: 'Net 30 Days',
-    credit_limit: 30000,
-    current_balance: 6500,
-    contact_person: 'Mr. Wang Wei',
-    contact_title: 'Regional Logistics Manager',
-    phone: '+855 44 712 345',
-    email: 'logistics@shenzhougroup.kh',
-    province: 'Svay Rieng',
-    address: 'National Highway 1, Manhattan Special Economic Zone, Bavet',
-    latitude: 11.0821,
-    longitude: 105.8112,
-    operator_id: 'op-3',
-    hub_name: 'Bavet Border Special Economic Zone Depot',
-    primary_corridor: 'Phnom Penh Central Hub ⇄ Bavet Border Special Economic Zone',
-    tax_id: 'K004-51293847',
-    notes: 'Cross-border manufacturing transit plant connecting Phnom Penh and Vietnam Highway 1 corridor.',
-    status: 'active',
-    rating: 4.8,
-    total_waybills: 112,
-    total_tonnage: 385.0,
-    total_spend: 49800.0,
-    cod_collected: 15800.0,
-    joined_date: '2026-01-20',
-    logo_url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=150&q=80',
-    active_shipments: [
-      { id: 'VKX-WAY-1098', destination: 'Phnom Penh Central Freight Hub', tonnage: '22.4 Tons', fee: 360, status: 'In Transit' },
-    ],
-  },
-  {
-    id: 'cop-4',
-    name: 'Sanco Poipet Apparel & Tech Logistics Ltd',
-    factory_name: 'Sanco Poipet Apparel & Tech Logistics Ltd',
-    short_name: 'Sanco Poipet',
-    code: 'COP-SANCO-04',
-    industry: 'Electronics & High-Tech',
-    category: 'Precision Assembly & Cross-Border Freight',
-    tier: 'Silver Partner',
-    discount_rate: '8% Off',
-    payment_terms: 'Net 15 Days',
-    credit_limit: 25000,
-    current_balance: 4100,
-    contact_person: 'Mr. Somchai Prasert',
-    contact_title: 'Operations Director',
-    phone: '+855 54 822 004',
-    email: 'dispatch@sancopoipet.kh',
-    province: 'Banteay Meanchey',
-    address: 'National Road 5, Sanco Poipet Special Economic Zone, Poipet',
-    latitude: 13.6558,
-    longitude: 102.5627,
-    operator_id: 'op-4',
-    hub_name: 'Poipet SEZ Cargo Logistics Depot',
-    primary_corridor: 'Phnom Penh Central Hub ⇄ Poipet SEZ Cargo Logistics Depot',
-    tax_id: 'K005-72819340',
-    notes: 'Key western border manufacturing hub handling automotive harness wiring and precision assembly components via NR5 corridor.',
-    status: 'active',
-    rating: 4.7,
-    total_waybills: 82,
-    total_tonnage: 275.0,
-    total_spend: 34200.0,
-    cod_collected: 9800.0,
-    joined_date: '2026-02-01',
-    logo_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=150&q=80',
-    active_shipments: [
-      { id: 'VKX-WAY-1102', destination: 'Phnom Penh Central Freight Hub', tonnage: '18.5 Tons', fee: 390, status: 'Scheduled' },
-    ],
-  },
-  {
-    id: 'cop-5',
-    name: 'Angkor Craft & Agri-Export Corporation',
-    factory_name: 'Angkor Craft & Agri-Export Corporation',
-    short_name: 'Angkor Agri Export',
-    code: 'COP-ANGKOR-05',
-    industry: 'Agriculture & Produce',
-    category: 'Agri Cold-Chain & Regional Cargo',
-    tier: 'Gold Partner',
-    discount_rate: '10% Off',
-    payment_terms: 'Net 30 Days',
-    credit_limit: 20000,
-    current_balance: 3200,
-    contact_person: 'Ms. Sovann Meas',
-    contact_title: 'Export & Logistics Lead',
-    phone: '+855 63 966 005',
-    email: 'contact@angkorcraft.kh',
-    province: 'Siem Reap',
-    address: 'National Road 6, Airport Logistics Bypass, Siem Reap',
-    latitude: 13.3671,
-    longitude: 103.8448,
-    operator_id: 'op-5',
-    hub_name: 'Siem Reap Regional Freight Center',
-    primary_corridor: 'Phnom Penh Central Hub ⇄ Siem Reap Regional Freight Center',
-    tax_id: 'K006-61928374',
-    notes: 'Specialized cold-chain cargo and regional agricultural produce exporter operating along the National Road 6 Central Corridor.',
-    status: 'active',
-    rating: 4.8,
-    total_waybills: 64,
-    total_tonnage: 190.0,
-    total_spend: 26500.0,
-    cod_collected: 8400.0,
-    joined_date: '2026-02-15',
-    logo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=150&q=80',
-    active_shipments: [
-      { id: 'VKX-WAY-1105', destination: 'Phnom Penh Central Freight Hub', tonnage: '15.0 Tons', fee: 320, status: 'Delivered' },
-    ],
-  },
-];
+export const DEFAULT_COOPERATORS = [];
 
-export const DEFAULT_ROUTES = [
-  {
-    id: 'r-1',
-    name: 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
-    origin: 'Phnom Penh Central Freight Hub',
-    destination: 'Sihanoukville Autonomous Port Deep Sea Terminal',
-    distance_km: 230,
-    duration_hours: 4.5,
-    duration_min: 270,
-    operator_id: 'op-1',
-    status: 'active',
-    stops: ['Phnom Penh Hub', 'Kampong Speu Staging', 'Veal Renh Junction', 'Sihanoukville Port Depot'],
-  },
-  {
-    id: 'r-2',
-    name: 'Phnom Penh Central Hub ⇄ Bavet Border Special Economic Zone',
-    origin: 'Phnom Penh Central Freight Hub',
-    destination: 'Bavet Border Special Economic Zone Depot',
-    distance_km: 165,
-    duration_hours: 3.2,
-    duration_min: 192,
-    operator_id: 'op-1',
-    status: 'active',
-    stops: ['Phnom Penh Hub', 'Neak Loeung Bridge Crossing', 'Svay Rieng Hub', 'Bavet SEZ Gate'],
-  },
-  {
-    id: 'r-3',
-    name: 'Phnom Penh Central Hub ⇄ Poipet SEZ Cargo Logistics Depot',
-    origin: 'Phnom Penh Central Freight Hub',
-    destination: 'Poipet SEZ Cargo Logistics Depot',
-    distance_km: 390,
-    duration_hours: 6.8,
-    duration_min: 408,
-    operator_id: 'op-1',
-    status: 'active',
-    stops: ['Phnom Penh Hub', 'Kampong Chhnang', 'Battambang Depot', 'Poipet SEZ'],
-  },
-  {
-    id: 'r-4',
-    name: 'Phnom Penh Central Hub ⇄ Siem Reap Regional Freight Center',
-    origin: 'Phnom Penh Central Freight Hub',
-    destination: 'Siem Reap Regional Freight Center',
-    distance_km: 314,
-    duration_hours: 5.5,
-    duration_min: 330,
-    operator_id: 'op-1',
-    status: 'active',
-    stops: ['Phnom Penh Hub', 'Skun Junction', 'Kampong Thom Hub', 'Siem Reap Cargo Center'],
-  },
-];
+export const DEFAULT_ROUTES = [];
 
 export const DEFAULT_SCHEDULES = [
   {
@@ -672,24 +355,32 @@ export const DEFAULT_BUSES = [
 export const initialBuses = DEFAULT_BUSES;
 export const initialUsers = DEFAULT_USERS;
 export const initialCooperators = DEFAULT_COOPERATORS;
-export const initialRoutes = DEFAULT_ROUTES;
+export const initialRoutes = [];
 export const initialSchedules = DEFAULT_SCHEDULES;
 export const initialTrips = DEFAULT_TRIPS;
 export const initialBookings = DEFAULT_BOOKINGS;
 export const initialIncidents = DEFAULT_INCIDENTS;
-export const initialOperators = DEFAULT_OPERATORS;
+export const initialOperators = [];
 
 export async function fetchBuses() {
   try {
-    const { data, error } = await supabase.from('buses').select('*').order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) {
-      const { data: trucksData, error: tErr } = await supabase.from('trucks').select('*').order('created_at', { ascending: false });
-      if (!tErr && trucksData && trucksData.length > 0) {
-        return trucksData;
-      }
-      return DEFAULT_BUSES;
+    const { data: trucksData, error: tErr } = await supabase.from('trucks').select('*').order('created_at', { ascending: false });
+    if (!tErr && trucksData && trucksData.length > 0) {
+      return trucksData.map((t) => ({
+        ...t,
+        capacity: Number(t.capacity || t.capacity_tons) || 25,
+        capacity_tons: Number(t.capacity_tons || t.capacity) || 25,
+      }));
     }
-    return data;
+    const { data, error } = await supabase.from('buses').select('*').order('created_at', { ascending: false });
+    if (!error && data && data.length > 0) {
+      return data.map((b) => ({
+        ...b,
+        capacity: Number(b.capacity || b.capacity_tons) || 25,
+        capacity_tons: Number(b.capacity_tons || b.capacity) || 25,
+      }));
+    }
+    return DEFAULT_BUSES;
   } catch {
     return DEFAULT_BUSES;
   }
@@ -710,12 +401,14 @@ export async function fetchUsers() {
 export async function fetchRoutes() {
   try {
     const { data, error } = await supabase.from('routes').select('*').order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) {
-      return DEFAULT_ROUTES;
+    if (error) {
+      console.warn('[Supabase fetchRoutes error]', error);
+      return [];
     }
-    return data;
-  } catch {
-    return DEFAULT_ROUTES;
+    return data || [];
+  } catch (err) {
+    console.warn('[Supabase fetchRoutes catch]', err);
+    return [];
   }
 }
 
@@ -770,12 +463,14 @@ export async function fetchIncidents() {
 export async function fetchOperators() {
   try {
     const { data, error } = await supabase.from('operators').select('*').order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) {
-      return DEFAULT_OPERATORS;
+    if (error) {
+      console.warn('[Supabase fetchOperators error]', error);
+      return [];
     }
-    return data;
-  } catch {
-    return DEFAULT_OPERATORS;
+    return data || [];
+  } catch (err) {
+    console.warn('[Supabase fetchOperators catch]', err);
+    return [];
   }
 }
 
@@ -787,31 +482,65 @@ export async function addLocalUser(newUser) {
   const payload = {
     full_name: newUser.full_name || newUser.name || 'Unnamed Staff',
     name: newUser.name || newUser.full_name || 'Unnamed Staff',
-    email: newUser.email,
-    phone: newUser.phone,
+    email: newUser.email || null,
+    phone: newUser.phone || null,
     role: newUser.role || 'driver',
     operator_id: newUser.operator_id || null,
     factory_name: newUser.factory_name || null,
     status: newUser.status || 'active',
     nationality: newUser.nationality || 'Cambodian',
-    avatar: newUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    avatar: newUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(newUser.full_name || newUser.name || 'Staff')}&background=f59e0b&color=0f172a`,
+    national_id: newUser.national_id || null,
+    id_card_image: newUser.id_card_image || null,
+    khmer_name: newUser.khmer_name || null,
+    dob: newUser.dob || null,
+    gender: newUser.gender || 'Male',
+    address: newUser.address || null,
+    id_expiry: newUser.id_expiry || null,
   };
 
-  const { data, error } = await supabase.from('users').insert(payload).select().single();
-  if (error) {
-    console.error('[Supabase addLocalUser error]', error);
-    return { ...payload, id: `u-${Date.now()}` };
+  try {
+    const { data, error } = await supabase.from('users').insert(payload).select().single();
+    if (!error && data) return { ...payload, ...data };
+    if (error) {
+      console.warn('[Supabase addLocalUser inserting with core fields fallback]', error);
+      const corePayload = {
+        full_name: payload.full_name,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        role: payload.role,
+        status: payload.status,
+        nationality: payload.nationality,
+        avatar: payload.avatar,
+      };
+      const { data: fbData } = await supabase.from('users').insert(corePayload).select().single();
+      if (fbData) return { ...payload, ...fbData };
+    }
+  } catch (err) {
+    console.warn('[Supabase addLocalUser fallback]', err);
   }
-  return data;
+
+  return { ...payload, id: `u-${Date.now()}` };
 }
 
 export async function updateLocalUser(id, updates) {
-  const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single();
-  if (error) {
-    console.error('[Supabase updateLocalUser error]', error);
-    return { id, ...updates };
+  try {
+    const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single();
+    if (!error && data) return { ...updates, ...data };
+    if (error) {
+      console.warn('[Supabase updateLocalUser fallback with core fields]', error);
+      const coreUpdates = {};
+      ['full_name', 'name', 'email', 'phone', 'role', 'status', 'nationality', 'avatar'].forEach((k) => {
+        if (updates[k] !== undefined) coreUpdates[k] = updates[k];
+      });
+      const { data: fbData } = await supabase.from('users').update(coreUpdates).eq('id', id).select().single();
+      if (fbData) return { ...updates, ...fbData };
+    }
+  } catch (err) {
+    console.warn('[Supabase updateLocalUser fallback]', err);
   }
-  return data;
+  return { id, ...updates };
 }
 
 export async function deleteLocalUser(id) {
@@ -845,6 +574,7 @@ export async function addLocalOperator(newOp) {
   };
 
   const { data, error } = await supabase.from('operators').insert(payload).select().single();
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
   if (error) {
     console.error('[Supabase addLocalOperator error]', error);
     return { ...payload, id: `hub-${Date.now()}` };
@@ -854,6 +584,7 @@ export async function addLocalOperator(newOp) {
 
 export async function updateLocalOperator(id, updates) {
   const { data, error } = await supabase.from('operators').update(updates).eq('id', id).select().single();
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
   if (error) {
     console.error('[Supabase updateLocalOperator error]', error);
     return { id, ...updates };
@@ -863,6 +594,7 @@ export async function updateLocalOperator(id, updates) {
 
 export async function deleteLocalOperator(id) {
   const { error } = await supabase.from('operators').delete().eq('id', id);
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
   if (error) {
     console.error('[Supabase deleteLocalOperator error]', error);
     return false;
@@ -885,6 +617,7 @@ export async function addLocalRoute(newRoute) {
   };
 
   const { data, error } = await supabase.from('routes').insert(payload).select().single();
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
   if (error) {
     console.error('[Supabase addLocalRoute error]', error);
     return payload;
@@ -894,6 +627,7 @@ export async function addLocalRoute(newRoute) {
 
 export async function updateLocalRoute(id, updates) {
   const { data, error } = await supabase.from('routes').update(updates).eq('id', id).select().single();
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
   if (error) {
     console.error('[Supabase updateLocalRoute error]', error);
     return { id, ...updates };
@@ -907,7 +641,126 @@ export async function deleteLocalRoute(id) {
     console.error('[Supabase deleteLocalRoute error]', error);
     return false;
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
+  }
   return true;
+}
+
+/**
+ * Automatically creates and syncs a Hub (operator) and Corridor (route) in Supabase
+ * when Google Maps location is detected or linked for a cooperator.
+ * Stores and highlights the Short Display Name on both Hub and Corridor!
+ */
+export async function syncHubAndCorridorLocation({
+  short_name,
+  factory_name,
+  address,
+  latitude,
+  longitude,
+  province,
+  phone,
+}) {
+  const shortDisplay = (short_name || factory_name || 'Factory').trim();
+  const safeProvince = province || 'Phnom Penh';
+  const latNum = Number(latitude) || 11.5564;
+  const lngNum = Number(longitude) || 104.9282;
+
+  // 1. Prepare Hub Payload with Short Display Name
+  const hubId = `hub-${Date.now()}`;
+  const cleanCode = shortDisplay.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5) || 'HUB';
+  const hubCode = `${cleanCode}-${Math.floor(100 + Math.random() * 900)}`;
+  const hubName = `[${shortDisplay}] ${safeProvince} Logistics Hub`;
+
+  const hubPayload = {
+    id: hubId,
+    name: hubName,
+    code: hubCode,
+    province: safeProvince,
+    address: address || `${safeProvince} Industrial Zone, Cambodia`,
+    latitude: latNum,
+    longitude: lngNum,
+    manager_name: `${shortDisplay} Site Dispatch`,
+    manager_phone: phone || '+855 12 888 777',
+    contact_phone: phone || '+855 12 888 777',
+    operating_hours: '24/7 Gate Dispatch',
+    loading_bays: 12,
+    weighbridge_capacity: '80 Tons Axle Scale',
+    amenities: ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
+    fleet_count: 2,
+    rating: 5.0,
+    status: 'active',
+  };
+
+  // 2. Insert into Supabase 'operators'
+  let savedHub = hubPayload;
+  try {
+    const { data, error } = await supabase.from('operators').insert(hubPayload).select().single();
+    if (!error && data) {
+      savedHub = data;
+    } else if (error) {
+      console.warn('[Supabase syncHubAndCorridorLocation operator error]', error);
+    }
+  } catch (err) {
+    console.warn('[Supabase syncHubAndCorridorLocation operator catch]', err);
+  }
+
+  // Calculate distance from Top Sports Textile HQ (11.0479485, 106.1204302)
+  const originLat = 11.0479485;
+  const originLng = 106.1204302;
+  const R = 6371;
+  const dLat = ((latNum - originLat) * Math.PI) / 180;
+  const dLon = ((lngNum - originLng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((originLat * Math.PI) / 180) *
+      Math.cos((latNum * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distKm = Math.max(1, Math.round(R * c));
+  const durHours = Number((distKm / 45).toFixed(1));
+  const durMin = Math.round(durHours * 60);
+
+  // 3. Prepare Route (Corridor) Payload with Short Display Name
+  const routeId = `r-${Date.now()}`;
+  const routeName = `Top Sports HQ ⇄ ${shortDisplay} (${safeProvince})`;
+  const routePayload = {
+    id: routeId,
+    operator_id: savedHub.id,
+    name: routeName,
+    origin: 'Top Sports Textile HQ',
+    destination: `[${shortDisplay}] ${address || safeProvince}`,
+    distance_km: distKm,
+    duration_min: durMin,
+    duration_hours: durHours,
+    status: 'active',
+    stops: [
+      'Top Sports Textile Central Base',
+      safeProvince === 'Svay Rieng' ? 'Manhattan SEZ Gate' : 'NR1 Neak Loeung Toll Plaza',
+      `${shortDisplay} Factory Loading Bay`,
+    ],
+  };
+
+  // 4. Insert into Supabase 'routes'
+  let savedRoute = routePayload;
+  try {
+    const { data, error } = await supabase.from('routes').insert(routePayload).select().single();
+    if (!error && data) {
+      savedRoute = data;
+    } else if (error) {
+      console.warn('[Supabase syncHubAndCorridorLocation route error]', error);
+    }
+  } catch (err) {
+    console.warn('[Supabase syncHubAndCorridorLocation route catch]', err);
+  }
+
+  // 5. Dispatch global sync event so all views refresh immediately from Supabase
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('supabase_sync_requested'));
+  }
+
+  return { hub: savedHub, route: savedRoute };
 }
 
 export async function addLocalSchedule(newSchedule) {
@@ -967,17 +820,17 @@ export async function saveCompanyProfileToDb(profile) {
   try {
     const payload = {
       id: 'primary_hq',
-      name: profile.name || 'Voleak Express Co., Ltd.',
-      code: profile.code || 'VOLEAK-HQ',
-      tagline: profile.tagline || 'Factory-to-Factory Heavy Freight Logistics',
+      name: profile.name || 'Top Sports Textile HQ',
+      code: profile.code || 'TOPSPORT-HQ',
+      tagline: profile.tagline || 'Top Sports Textile Heavy Freight Logistics',
       phone: profile.phone || '+855 12 888 999',
       email: profile.email || 'dispatch@voleakexpress.com',
       director: profile.director || 'Bong Leak (Managing Director)',
       tax_id: profile.tax_id || 'K002-98471203',
-      province: profile.province || 'Phnom Penh',
-      address: profile.address || 'National Road 4 Logistics Corridor, Phnom Penh Base',
-      latitude: Number(profile.latitude) || 11.5564,
-      longitude: Number(profile.longitude) || 104.9282,
+      province: profile.province || 'Svay Rieng',
+      address: profile.address || 'https://maps.app.goo.gl/TmcZJHpCzd3KCjEr7 Top Sports Textile',
+      latitude: Number(profile.latitude) || 11.0479485,
+      longitude: Number(profile.longitude) || 106.1204302,
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase.from('company_profile').upsert(payload).select().single();
@@ -1004,10 +857,212 @@ export async function fetchCompanyProfileFromDb() {
 // -------------------------------------------------------------
 // Cooperators & Corporate Clients
 // -------------------------------------------------------------
+
+export const COOPERATORS_SQL_MIGRATION = `-- ============================================================
+-- Voleak Express - Cooperators Table Schema Migration
+-- For Supabase PostgreSQL (https://muqgtennllxkckxxqibm.supabase.co)
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS public.cooperators (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    name TEXT NOT NULL,
+    factory_name TEXT,
+    short_name TEXT,
+    code TEXT UNIQUE,
+    industry TEXT DEFAULT 'Garments & Textiles',
+    category TEXT DEFAULT 'Garment & Apparel Manufacturing',
+    tier TEXT DEFAULT 'VIP Platinum Partner',
+    discount_rate TEXT DEFAULT '15% Corporate Off',
+    payment_terms TEXT DEFAULT 'Net 30 Days',
+    credit_limit NUMERIC DEFAULT 50000.0,
+    current_balance NUMERIC DEFAULT 12400.0,
+    contact_person TEXT,
+    contact_title TEXT,
+    phone TEXT,
+    email TEXT,
+    tax_id TEXT,
+    province TEXT DEFAULT 'Phnom Penh',
+    address TEXT,
+    latitude NUMERIC DEFAULT 11.5564,
+    longitude NUMERIC DEFAULT 104.9282,
+    operator_id TEXT DEFAULT 'hub-pp-01',
+    hub_name TEXT DEFAULT 'Phnom Penh Central Freight Hub',
+    primary_corridor TEXT DEFAULT 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    logo_url TEXT,
+    rating NUMERIC DEFAULT 5.0,
+    total_waybills INT DEFAULT 148,
+    total_tonnage NUMERIC DEFAULT 420.5,
+    total_spend NUMERIC DEFAULT 58200.0,
+    cod_collected NUMERIC DEFAULT 18500.0,
+    joined_date TEXT DEFAULT '2026-01-15',
+    notes TEXT,
+    status TEXT DEFAULT 'active',
+    active_shipments JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.cooperators ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access to cooperators" ON public.cooperators;
+CREATE POLICY "Allow public read access to cooperators" ON public.cooperators FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert access to cooperators" ON public.cooperators;
+CREATE POLICY "Allow public insert access to cooperators" ON public.cooperators FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update access to cooperators" ON public.cooperators;
+CREATE POLICY "Allow public update access to cooperators" ON public.cooperators FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete access to cooperators" ON public.cooperators;
+CREATE POLICY "Allow public delete access to cooperators" ON public.cooperators FOR DELETE USING (true);
+
+INSERT INTO public.cooperators (
+    id, name, factory_name, short_name, code, industry, category, tier, discount_rate, payment_terms,
+    credit_limit, current_balance, contact_person, contact_title, phone, email, tax_id, province, address,
+    latitude, longitude, operator_id, hub_name, primary_corridor, logo_url, rating, total_waybills,
+    total_tonnage, total_spend, cod_collected, joined_date, notes, status, active_shipments
+) VALUES (
+    '55555555-5555-5555-5555-555555555555',
+    'Top Sports Textile (TST Group)',
+    'Manhattan Textile Mills Ltd',
+    'Manhattan Garments',
+    'COP-MANHATTAN-01',
+    'Garments & Textiles',
+    'Garment & Apparel Manufacturing',
+    'VIP Platinum Partner',
+    '15% Corporate Off',
+    'Net 30 Days',
+    50000.0,
+    12400.0,
+    'Mr. Kenji Takahashi',
+    'Procurement & Supply Chain Director',
+    '+855 23 881 200',
+    'procurement@manhattanmills.kh',
+    'K002-98471203',
+    'Phnom Penh',
+    'Phnom Penh Special Economic Zone (PPSEZ), National Road 4',
+    11.5564,
+    104.9282,
+    'hub-pp-01',
+    'Phnom Penh Central Freight Hub',
+    'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&q=80',
+    5.0,
+    148,
+    420.5,
+    58200.0,
+    18500.0,
+    '2026-01-15',
+    'Primary PPSEZ partner with dedicated 40ft container dispatch direct to Sihanoukville Port Deep Sea Terminal.',
+    'active',
+    '[{"id":"VKX-WAY-1092","destination":"Sihanoukville Port Deep Sea Terminal","tonnage":"24.5 Tons","fee":420,"status":"In Transit"},{"id":"VKX-WAY-1094","destination":"Bavet Border Special Economic Zone Depot","tonnage":"18.0 Tons","fee":310,"status":"Delivered"}]'::jsonb
+), (
+    'cop-2',
+    'Crystal Garment International Ltd',
+    'Crystal Garment International Ltd',
+    'Crystal Garments',
+    'COP-CRYSTAL-02',
+    'Garments & Textiles',
+    'Activewear Export Partner',
+    'Gold Partner',
+    '10% Off',
+    'Net 30 Days',
+    35000.0,
+    8200.0,
+    'Ms. Lin Mei-Hua',
+    'Export Logistics Head',
+    '+855 34 934 888',
+    'shipping@crystalgarments.kh',
+    'K003-81927344',
+    'Preah Sihanouk',
+    'Port Maritime Zone 3, Sihanoukville Port SEZ Industrial Park',
+    10.6253,
+    103.5234,
+    'hub-shv-02',
+    'Sihanoukville Autonomous Port Deep Sea Terminal',
+    'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=300&q=80',
+    4.9,
+    96,
+    310.0,
+    41500.0,
+    12300.0,
+    '2026-02-10',
+    'Deep-sea maritime terminal staging for international container export vessels and textile raw material intake.',
+    'active',
+    '[{"id":"VKX-WAY-2041","destination":"Phnom Penh Central Freight Hub","tonnage":"16.5 Tons","fee":380,"status":"Scheduled"}]'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    factory_name = EXCLUDED.factory_name,
+    short_name = EXCLUDED.short_name,
+    contact_person = EXCLUDED.contact_person,
+    phone = EXCLUDED.phone,
+    logo_url = EXCLUDED.logo_url;
+`;
+
+export async function checkCooperatorsTableStatus() {
+  try {
+    const { count, error } = await supabase.from('cooperators').select('id', { count: 'exact', head: true });
+    if (error) {
+      const isMissing = error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('schema cache');
+      return { exists: !isMissing, count: 0, error };
+    }
+    return { exists: true, count: typeof count === 'number' ? count : 0, error: null };
+  } catch (err) {
+    return { exists: false, count: 0, error: err };
+  }
+}
+
+export function formatCooperatorPayload(cop) {
+  return {
+    id: cop.id || `cop-${Date.now()}`,
+    name: cop.name || 'Enterprise Cooperator',
+    factory_name: cop.factory_name || cop.name || 'Enterprise Cooperator',
+    short_name: cop.short_name || cop.name?.split(' ')[0] || '',
+    code: cop.code || `COP-${Math.floor(1000 + Math.random() * 9000)}`,
+    industry: cop.industry || 'Garments & Textiles',
+    category: cop.category || 'Garment & Apparel Manufacturing',
+    tier: cop.tier || 'Gold Partner',
+    discount_rate: cop.discount_rate || '10% Off',
+    payment_terms: cop.payment_terms || 'Net 30 Days',
+    credit_limit: Number(cop.credit_limit) || 30000,
+    current_balance: Number(cop.current_balance) || 0,
+    contact_person: cop.contact_person || '',
+    contact_title: cop.contact_title || 'Procurement & Logistics Director',
+    phone: cop.phone || '',
+    email: cop.email || '',
+    tax_id: cop.tax_id || '',
+    province: cop.province || 'Phnom Penh',
+    address: cop.address || '',
+    latitude: Number(cop.latitude) || 11.5564,
+    longitude: Number(cop.longitude) || 104.9282,
+    operator_id: cop.operator_id || 'hub-pp-01',
+    hub_name: cop.hub_name || 'Phnom Penh Central Freight Hub',
+    primary_corridor: cop.primary_corridor || 'Phnom Penh Central Hub ⇄ Sihanoukville Port Deep Sea Terminal',
+    logo_url: cop.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(cop.name || 'Cooperator')}&background=f59e0b&color=0f172a&bold=true`,
+    rating: Number(cop.rating) || 5.0,
+    total_waybills: Number(cop.total_waybills) || 0,
+    total_tonnage: Number(cop.total_tonnage) || 0,
+    total_spend: Number(cop.total_spend) || 0,
+    cod_collected: Number(cop.cod_collected) || 0,
+    joined_date: cop.joined_date || new Date().toISOString().split('T')[0],
+    notes: cop.notes || '',
+    status: cop.status || 'active',
+    active_shipments: Array.isArray(cop.active_shipments) ? cop.active_shipments : [],
+  };
+}
+
 export async function fetchCooperators() {
   try {
     const { data, error } = await supabase.from('cooperators').select('*').order('created_at', { ascending: false });
     if (error || !data || data.length === 0) {
+      // If table exists but empty, seed default cooperators automatically
+      if (!error && data && data.length === 0) {
+        await syncCooperatorsToSupabase(DEFAULT_COOPERATORS).catch(() => {});
+      }
       return DEFAULT_COOPERATORS;
     }
     return data;
@@ -1016,43 +1071,65 @@ export async function fetchCooperators() {
   }
 }
 
-export async function addLocalCooperator(newCop) {
-  const payload = {
-    ...newCop,
-    status: newCop.status || 'active',
-    rating: Number(newCop.rating) || 5.0,
-    total_waybills: Number(newCop.total_waybills) || 0,
-    total_tonnage: Number(newCop.total_tonnage) || 0,
-    total_spend: Number(newCop.total_spend) || 0,
-    cod_collected: Number(newCop.cod_collected) || 0,
-    joined_date: newCop.joined_date || new Date().toISOString().split('T')[0],
-    active_shipments: newCop.active_shipments || [],
-  };
+export async function syncCooperatorsToSupabase(cooperatorsList = DEFAULT_COOPERATORS) {
+  try {
+    const list = Array.isArray(cooperatorsList) && cooperatorsList.length > 0 ? cooperatorsList : DEFAULT_COOPERATORS;
+    const payloads = list.map(formatCooperatorPayload);
 
-  const { data, error } = await supabase.from('cooperators').insert(payload).select().single();
-  if (error) {
-    console.error('[Supabase addLocalCooperator error]', error);
+    const { data, error } = await supabase.from('cooperators').upsert(payloads, { onConflict: 'id' }).select();
+    if (error) {
+      console.warn('[Supabase syncCooperatorsToSupabase error]', error);
+      return { success: false, error, data: null };
+    }
+    return { success: true, count: data ? data.length : payloads.length, data: data || payloads };
+  } catch (err) {
+    console.warn('[Supabase syncCooperatorsToSupabase catch]', err);
+    return { success: false, error: err, data: null };
+  }
+}
+
+export async function addLocalCooperator(newCop) {
+  const payload = formatCooperatorPayload(newCop);
+
+  try {
+    const { data, error } = await supabase.from('cooperators').insert(payload).select().single();
+    if (error) {
+      console.warn('[Supabase addLocalCooperator warning]', error.message);
+      return payload;
+    }
+    return data || payload;
+  } catch (err) {
+    console.warn('[Supabase addLocalCooperator catch]', err);
     return payload;
   }
-  return data;
 }
 
 export async function updateLocalCooperator(id, updates) {
-  const { data, error } = await supabase.from('cooperators').update(updates).eq('id', id).select().single();
-  if (error) {
-    console.error('[Supabase updateLocalCooperator error]', error);
+  try {
+    const { data, error } = await supabase.from('cooperators').update(updates).eq('id', id).select().single();
+    if (error) {
+      console.warn('[Supabase updateLocalCooperator warning]', error.message);
+      return { id, ...updates };
+    }
+    return data || { id, ...updates };
+  } catch (err) {
+    console.warn('[Supabase updateLocalCooperator catch]', err);
     return { id, ...updates };
   }
-  return data;
 }
 
 export async function deleteLocalCooperator(id) {
-  const { error } = await supabase.from('cooperators').delete().eq('id', id);
-  if (error) {
-    console.error('[Supabase deleteLocalCooperator error]', error);
+  try {
+    const { error } = await supabase.from('cooperators').delete().eq('id', id);
+    if (error) {
+      console.warn('[Supabase deleteLocalCooperator warning]', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase deleteLocalCooperator catch]', err);
     return false;
   }
-  return true;
 }
 
 // Top Sports Textile (TST Group) Product Catalog
@@ -1608,7 +1685,16 @@ export async function addLocalProduct(newProd) {
   try {
     const { data, error } = await supabase.from('products').insert(payload).select().single();
     if (!error && data) return data;
+    if (error) {
+      console.warn('[Supabase addLocalProduct error]', error);
+      if (error.code === '23505') {
+        throw new Error(`SKU "${payload.sku}" is already registered. Please generate or enter a different SKU.`);
+      }
+    }
   } catch (err) {
+    if (err.message && err.message.includes('already registered')) {
+      throw err;
+    }
     console.warn('[Supabase addLocalProduct fallback]', err);
   }
   return payload;
@@ -1741,49 +1827,113 @@ export async function addLocalStockMovement(newMovement) {
 }
 
 export async function addLocalBus(newBus) {
-  const payload = {
-    id: `truck-${Date.now()}`,
+  const truckPayload = {
+    id: newBus.id || `truck-${Date.now()}`,
     plate_number: newBus.plate_number,
     model: newBus.model,
-    capacity: Number(newBus.capacity || newBus.capacity_tons) || 25,
-    capacity_tons: Number(newBus.capacity || newBus.capacity_tons) || 25,
+    capacity_tons: Number(newBus.capacity_tons || newBus.capacity) || 25,
     status: newBus.status || 'active',
     truck_type: newBus.truck_type || 'Container Heavy Trailer (25T)',
     image_url: newBus.image_url || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80',
     assigned_driver_name: newBus.assigned_driver_name || 'Dara Chan',
     assigned_driver_phone: newBus.assigned_driver_phone || '+855 98 777 001',
-    assigned_driver_email: newBus.assigned_driver_email || 'driver.dara@voleakexpress.com',
     engine_power: newBus.engine_power || '450 HP Diesel',
     next_inspection_date: newBus.next_inspection_date || '2026-12-31',
     insurance_policy_number: newBus.insurance_policy_number || 'VKX-INS-8849-KH',
-    created_at: new Date().toISOString(),
+    home_hub_name: newBus.home_hub_name || 'Phnom Penh SEZ Central Hub',
+    operator_id: (newBus.operator_id && newBus.operator_id !== 'op-1') ? newBus.operator_id : 'hub-pp-01',
   };
 
+  let savedData = null;
+
+  // 1. Primary: Insert into 'trucks' table
   try {
-    const { data, error } = await supabase.from('buses').insert(payload).select().single();
-    if (!error && data) return data;
+    const { data, error } = await supabase.from('trucks').insert(truckPayload).select().single();
+    if (!error && data) {
+      console.log('[Supabase addLocalBus] Saved to trucks table:', data.id);
+      savedData = data;
+    } else if (error) {
+      console.warn('[Supabase addLocalBus] trucks insert warning:', error);
+      // If error is FK on operator_id, retry with null operator_id
+      if (error.code === '23503' || error.message?.includes('operator_id')) {
+        const retryPayload = { ...truckPayload, operator_id: null };
+        const { data: retryData, error: retryErr } = await supabase.from('trucks').insert(retryPayload).select().single();
+        if (!retryErr && retryData) {
+          savedData = retryData;
+        }
+      }
+    }
   } catch (err) {
-    console.warn('[Supabase addLocalBus fallback]', err);
+    console.warn('[Supabase addLocalBus trucks error]', err);
   }
-  return payload;
+
+  // 2. Fallback: Try 'buses' table if trucks failed
+  if (!savedData) {
+    try {
+      const busPayload = {
+        ...truckPayload,
+        capacity: truckPayload.capacity_tons,
+        assigned_driver_email: newBus.assigned_driver_email || 'driver.dara@voleakexpress.com',
+      };
+      const { data, error } = await supabase.from('buses').insert(busPayload).select().single();
+      if (!error && data) {
+        savedData = data;
+      }
+    } catch (err) {
+      console.warn('[Supabase addLocalBus buses fallback]', err);
+    }
+  }
+
+  return {
+    ...truckPayload,
+    capacity: truckPayload.capacity_tons,
+    assigned_driver_email: newBus.assigned_driver_email || 'driver.dara@voleakexpress.com',
+    ...(savedData || {}),
+  };
 }
 
 export async function updateLocalBus(id, updates) {
+  // Clean payload for trucks table
+  const truckUpdates = { ...updates };
+  delete truckUpdates.capacity; // trucks uses capacity_tons
+  delete truckUpdates.assigned_driver_email; // not in trucks schema
+  if (truckUpdates.operator_id === 'op-1') {
+    truckUpdates.operator_id = 'hub-pp-01';
+  }
+
+  try {
+    const { data, error } = await supabase.from('trucks').update(truckUpdates).eq('id', id).select().single();
+    if (!error && data) {
+      return { ...updates, ...data };
+    }
+  } catch (err) {
+    console.warn('[Supabase updateLocalBus trucks error]', err);
+  }
+
   try {
     const { data, error } = await supabase.from('buses').update(updates).eq('id', id).select().single();
     if (!error && data) return data;
   } catch (err) {
-    console.warn('[Supabase updateLocalBus fallback]', err);
+    console.warn('[Supabase updateLocalBus buses fallback]', err);
   }
+
   return { id, ...updates };
 }
 
 export async function deleteLocalBus(id) {
   try {
+    const { error } = await supabase.from('trucks').delete().eq('id', id);
+    if (!error) return true;
+  } catch (err) {
+    console.warn('[Supabase deleteLocalBus trucks error]', err);
+  }
+
+  try {
     const { error } = await supabase.from('buses').delete().eq('id', id);
     if (!error) return true;
   } catch (err) {
-    console.warn('[Supabase deleteLocalBus fallback]', err);
+    console.warn('[Supabase deleteLocalBus buses fallback]', err);
   }
+
   return true;
 }

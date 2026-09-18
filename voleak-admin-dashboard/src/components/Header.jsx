@@ -40,7 +40,7 @@ export default function Header({ searchVal, setSearchVal, activeTabTitle }) {
             {activeTabTitle}
           </h1>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Voleak Express • Truck & Cargo Logistics
+            Top Sports Textile • Truck & Cargo Logistics
           </p>
         </div>
       </div>

@@ -145,7 +145,7 @@ class ReceiptService {
               ),
               pw.SizedBox(height: 24),
               pw.Text(
-                'Thank you for choosing Voleak Express!',
+                'Thank you for choosing Top Sports Textile!',
                 style: pw.TextStyle(fontSize: 11, color: PdfColors.grey),
               ),
               pw.Text(
@@ -169,7 +169,7 @@ class ReceiptService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
-          'VOLEAK EXPRESS',
+          'TOP SPORTS TEXTILE',
           style: pw.TextStyle(
             fontSize: 28,
             fontWeight: pw.FontWeight.bold,
@@ -265,7 +265,7 @@ class ReceiptService {
     await file.writeAsBytes(bytes);
     await Share.shareXFiles(
       [XFile(file.path)],
-      subject: 'Voleak Express Receipt',
+      subject: 'Top Sports Textile Receipt',
     );
   }
 }

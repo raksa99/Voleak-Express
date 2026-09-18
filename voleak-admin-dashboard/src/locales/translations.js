@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     // Navigation & Header
-    appTitle: 'Voleak Express Freight',
+    appTitle: 'Top Sports Textile Freight',
     brandSubtitle: 'Factory-to-Factory Heavy Freight Logistics',
     searchPlaceholder: 'Search factory waybills, container trucks, cargo pallets, shippers...',
     connected: 'Supabase Connected',
@@ -24,9 +24,9 @@ export const translations = {
     navSettings: 'System Settings',
 
     // Inventory & Products View
-    inventoryTitle: 'Multi-Hub Inventory & Cargo Catalog',
-    inventorySubtitle: 'Track multi-hub stock levels, reserved pallet allocations, product catalog specifications, and inter-hub transfers',
-    tabBranchStock: 'Hub & Branch Warehouses',
+    inventoryTitle: 'Cargo & Product Catalog',
+    inventorySubtitle: 'Manage textile materials, raw garment supplies, and finished apparel cargo specifications',
+    tabBranchStock: 'Cargo Catalog',
     tabCatalog: 'Product Catalog',
     tabStockMovements: 'Stock Movements & Audit',
     tabCooperatorStock: 'Cooperator Consignment',
@@ -79,7 +79,7 @@ export const translations = {
     addCooperatorBtn: 'Add Cooperator',
 
     // Overview Stats
-    statsTotalRevenue: 'Freight Shipping Revenue',
+    statsTotalRevenue: 'Cargo Payload Tonnage (Tons)',
     statsTotalBookings: 'Factory Consignments Shipped',
     statsActiveTrips: 'Trucks on Highway Today',
     statsActiveBuses: 'Registered Heavy Trucks',
@@ -87,10 +87,10 @@ export const translations = {
     statsActiveDrivers: 'Certified Heavy Haul Drivers',
     statsIncidentsReported: 'Pending Customs / Exceptions',
     statsOperatorCount: 'SEZ & Port Logistics Hubs',
-    statsCodCollected: 'Total COD / Cargo Value',
+    statsCodCollected: 'Connected Freight Corridors',
 
     // Overview Charts & Lists
-    revenueOverview: 'Freight Revenue & Cargo Tonnage Trend',
+    revenueOverview: 'Logistics Payload & Tonnage Trend',
     recentBookings: 'Recent Factory Waybills',
     activeTripsLive: 'Live Truck Manifest Status',
     quickActions: 'Express Dispatch Shortcuts',
@@ -164,14 +164,14 @@ export const translations = {
 
     // Waybills & Cargo View (Bookings)
     bookingsTitle: 'Factory Waybills & Freight Consignments',
-    bookingsSubtitle: 'Track pallet tonnage, shipping documents, container seals, Cash on Delivery (COD), and QR barcodes',
+    bookingsSubtitle: 'Track pallet tonnage, shipping documents, container seals, and QR barcodes',
     newBookingBtn: '+ Create Factory Waybill',
     thBookingId: 'Waybill No (Tracking)',
     thPassenger: 'Origin Factory (Shipper)',
     thTrip: 'Destination Factory (Consignee)',
     thSeat: 'Tonnage / Volume',
     thChannel: 'Cargo Category',
-    thPriceAmount: 'Freight Fee ($)',
+    thPriceAmount: 'Transit Route',
     thTicketQr: 'Waybill Label',
     channelOnline: 'General Industrial Freight',
     channelCounter: 'Heavy Container Freight',
@@ -239,7 +239,7 @@ export const translations = {
 
   km: {
     // Navigation & Header
-    appTitle: 'វូលក្ខ អ៊ិចប្រេស ដឹកជញ្ជូនទំនិញរោងចក្រ',
+    appTitle: 'Top Sports Textile ដឹកជញ្ជូនទំនិញរោងចក្រ',
     brandSubtitle: 'ប្រព័ន្ធភស្តុភារកម្មដឹកជញ្ជូនទំនិញធុនធ្ងន់ពីរោងចក្រទៅរោងចក្រ (B2B)',
     searchPlaceholder: 'ស្វែងរករកលេខប័ណ្ណ Waybill, រថយន្តកុងតែន័រ, ទំនិញរោងចក្រ, អ្នកផ្ញើ...',
     connected: 'ភ្ជាប់ Supabase រួចរាល់',
@@ -261,9 +261,9 @@ export const translations = {
     navSettings: 'ការកំណត់ប្រព័ន្ធ',
 
     // Inventory & Products View (Khmer)
-    inventoryTitle: 'ការគ្រប់គ្រងសារពើភ័ណ្ឌឃ្លាំង & បញ្ជីទំនិញរោងចក្រ',
-    inventorySubtitle: 'តាមដានស្តុកទំនិញតាមឃ្លាំង/តំបន់ SEZ, ការកក់ទុកប៉ាឡែត, បញ្ជីទំនិញ និងការផ្ទេរទំនិញរវាងឃ្លាំង',
-    tabBranchStock: 'ស្តុកតាមឃ្លាំង & សាខា',
+    inventoryTitle: 'កាតាឡុកទំនិញ & សារពើភ័ណ្ឌ',
+    inventorySubtitle: 'គ្រប់គ្រងវត្ថុធាតុដើមវាយនភ័ណ្ឌ សម្ភារៈកាត់ដេរ និងទំនិញសម្លៀកបំពាក់កីឡា',
+    tabBranchStock: 'កាតាឡុកទំនិញ',
     tabCatalog: 'កាតាឡុកទំនិញរោងចក្រ',
     tabStockMovements: 'កំណត់ត្រាចលនាស្តុក & សវនកម្ម',
     tabCooperatorStock: 'ស្តុកផ្ញើនៅរោងចក្រដៃគូ',
@@ -316,7 +316,7 @@ export const translations = {
     addCooperatorBtn: 'បន្ថែមដៃគូសហការថ្មី',
 
     // Overview Stats
-    statsTotalRevenue: 'ចំណូលសេវាដឹកជញ្ជូនទំនិញ',
+    statsTotalRevenue: 'ទម្ងន់ទំនិញដឹកជញ្ជូនសរុប (តោន)',
     statsTotalBookings: 'ចំនួនជើងដឹកទំនិញរោងចក្រសរុប',
     statsActiveTrips: 'រថយន្តកំពុងរត់លើផ្លូវជាតិ',
     statsActiveBuses: 'រថយន្តកុងតែន័រដឹកទំនិញធំ',
@@ -324,10 +324,10 @@ export const translations = {
     statsActiveDrivers: 'អ្នកបើកបរឡានធំប្រចាំការ',
     statsIncidentsReported: 'បញ្ហាដឹកជញ្ជូនកំពុងដោះស្រាយ',
     statsOperatorCount: 'តំបន់សេដ្ឋកិច្ចពិសេស & ផែ',
-    statsCodCollected: 'តម្លៃទំនិញ/ប្រាក់ COD',
+    statsCodCollected: 'ផ្លូវរបៀងដឹកជញ្ជូនសកម្ម',
 
     // Overview Charts & Lists
-    revenueOverview: 'និន្នាការចំណូល និងទម្ងន់ទំនិញដឹកជញ្ជូន (តោន)',
+    revenueOverview: 'និន្នាការទម្ងន់ទំនិញដឹកជញ្ជូន (តោន)',
     recentBookings: 'ប័ណ្ណដឹកជញ្ជូនទំនិញ (Waybills) ថ្មីៗ',
     activeTripsLive: 'ស្ថានភាពរថយន្តកុងតែន័រផ្ទាល់',
     quickActions: 'សកម្មភាពបញ្ជូនទំនិញរហ័ស',
@@ -401,14 +401,14 @@ export const translations = {
 
     // Waybills & Cargo View
     bookingsTitle: 'ប័ណ្ណដឹកជញ្ជូន Waybills & ទំនិញរោងចក្រ (B2B)',
-    bookingsSubtitle: 'តាមដានទម្ងន់ទំនិញ (តោន) លេខកូដកុងតែន័រ ទឹកប្រាក់ COD និងកូដ QR សម្រាប់ស្កេន',
+    bookingsSubtitle: 'តាមដានទម្ងន់ទំនិញ (តោន) លេខកូដកុងតែន័រ និងកូដ QR សម្រាប់ស្កេន',
     newBookingBtn: '+ បង្កើតប័ណ្ណ Waybill ថ្មី',
     thBookingId: 'លេខ Waybill (Tracking)',
     thPassenger: 'រោងចក្រអ្នកផ្ញើ (Shipper)',
     thTrip: 'រោងចក្រអ្នកទទួល (Consignee)',
     thSeat: 'ទម្ងន់ផ្ទុក (តោន)',
     thChannel: 'ប្រភេទទំនិញ',
-    thPriceAmount: 'ថ្លៃសេវាដឹក ($)',
+    thPriceAmount: 'ផ្លូវរបៀងដឹកជញ្ជូន',
     thTicketQr: 'ស្លាកបិទ Waybill',
     channelOnline: 'ទំនិញឧស្សាហកម្មទូទៅ',
     channelCounter: 'ទំនិញកុងតែន័រធុនធ្ងន់',

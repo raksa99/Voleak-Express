@@ -188,9 +188,12 @@ function DashboardContent() {
                   routes={routes}
                   searchVal={searchVal}
                   setActiveTab={setActiveTab}
+                  onRefresh={refreshData}
                 />
               )}
-              {activeTab === 'fleet' && <FleetView buses={buses} setBuses={setBuses} />}
+              {activeTab === 'fleet' && (
+                <FleetView buses={buses} setBuses={setBuses} users={users} />
+              )}
               {activeTab === 'inventory' && (
                 <InventoryView
                   products={products}
