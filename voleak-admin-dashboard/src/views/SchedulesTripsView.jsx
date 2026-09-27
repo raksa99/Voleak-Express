@@ -3,24 +3,46 @@ import { useLanguage } from '../context/LanguageContext';
 import { Calendar, PlusCircle, Play, CheckCircle, Clock, Truck, User, X, Scale } from 'lucide-react';
 import { addLocalSchedule, updateTripStatus } from '../lib/supabaseClient';
 
-export default function SchedulesTripsView({ schedules, setSchedules, trips, setTrips, routes, buses, users }) {
+export default function SchedulesTripsView({ schedules, setSchedules, trips, setTrips, routes, buses, users, cooperators = [] }) {
   const { t } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [routeId, setRouteId] = useState(routes[0]?.id || 'r-1');
   const [busId, setBusId] = useState(buses[0]?.id || 'b-1');
   const [driverId, setDriverId] = useState('u-3');
+  const [cooperatorId, setCooperatorId] = useState(cooperators[0]?.id || '');
   const [depTime, setDepTime] = useState('06:00');
   const [arrTime, setArrTime] = useState('12:00');
   const [price, setPrice] = useState(120.0);
 
+  const getTripCooperator = (trip) => {
+    if (trip.cooperator_name) return trip.cooperator_name;
+    if (trip.cooperator) return trip.cooperator;
+    if (trip.cooperator_id) {
+      const found = cooperators.find((c) => c.id === trip.cooperator_id);
+      if (found) return found.name;
+    }
+    if (trip.id === 'TRK-901') {
+      const found = cooperators.find((c) => c.id === 'cop-bowker' || c.short_name?.toLowerCase().includes('bowker'));
+      return found ? found.name : 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED';
+    }
+    if (trip.id === 'TRK-902') {
+      const found = cooperators.find((c) => c.id === 'cop-eminent' || c.short_name?.toLowerCase().includes('eminent'));
+      return found ? found.name : 'EMINENT GARMENT (CAMBODIA) LIMITED';
+    }
+    return cooperators[0]?.name || '8 STAR SPORTSWEAR LTD.';
+  };
+
   const handleCreateSchedule = (e) => {
     e.preventDefault();
+    const selectedCoop = cooperators.find((c) => c.id === cooperatorId);
     const newSch = addLocalSchedule({
       route_id: routeId,
       bus_id: busId,
       driver_id: driverId,
       conductor_id: 'u-4',
+      cooperator_id: cooperatorId,
+      cooperator_name: selectedCoop?.name || '',
       departure_time: `${depTime}:00`,
       arrival_time: `${arrTime}:00`,
       days_of_week: '1,2,3,4,5,6,7',
@@ -101,6 +123,12 @@ export default function SchedulesTripsView({ schedules, setSchedules, trips, set
                   <span className="font-bold text-slate-800 dark:text-slate-200">{trip.bus_plate}</span>
                 </div>
                 <div className="flex items-center justify-between">
+                  <span>Cooperator / Consignee:</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 truncate max-w-[180px]">
+                    {getTripCooperator(trip)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span>Lead Driver:</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.driver_name}</span>
                 </div>
@@ -166,6 +194,23 @@ export default function SchedulesTripsView({ schedules, setSchedules, trips, set
                   {routes.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} ({r.distance_km}km)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Target Cooperator / Client
+                </label>
+                <select
+                  value={cooperatorId}
+                  onChange={(e) => setCooperatorId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
+                >
+                  {cooperators.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.short_name ? `(${c.short_name})` : ''}
                     </option>
                   ))}
                 </select>

@@ -48,7 +48,7 @@ export function useAuthRole() {
     return {
       currentRole: 'admin',
       setCurrentRole: () => {},
-      selectedBranchId: 'op-1',
+      selectedBranchId: 'hub-8star',
       setSelectedBranchId: () => {},
       currentUser: {
         id: 'u-admin',

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { FACTORY_OPERATORS, FACTORY_ROUTES, FACTORY_COOPERATORS } from './cooperatorDatasets';
 
 // User's Live Supabase Configuration
 const SUPABASE_URL =
@@ -25,8 +26,8 @@ export let isSupabaseConnected = true;
 
 export async function checkSupabaseConnection() {
   try {
-    const { data, error } = await supabase.from('users').select('id').limit(1);
-    if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
+    const { error } = await supabase.from('buses').select('id').limit(1);
+    if (error) {
       isSupabaseConnected = false;
       return false;
     }
@@ -39,10 +40,10 @@ export async function checkSupabaseConnection() {
 }
 
 // -------------------------------------------------------------
-// Default Fallback Datasets for High-Availability
+// Default Fallback Datasets for High-Availability (Real Factory Cooperators)
 // -------------------------------------------------------------
 
-export const DEFAULT_OPERATORS = [];
+export const DEFAULT_OPERATORS = FACTORY_OPERATORS;
 
 export const DEFAULT_USERS = [
   {
@@ -52,7 +53,7 @@ export const DEFAULT_USERS = [
     email: 'director@voleakexpress.com',
     phone: '+855 12 888 999',
     role: 'admin',
-    operator_id: 'op-1',
+    operator_id: 'hub-8star',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
     national_id: '010001001',
@@ -70,7 +71,7 @@ export const DEFAULT_USERS = [
     email: 'logistics.head@voleakexpress.com',
     phone: '+855 12 888 002',
     role: 'manager',
-    operator_id: 'op-2',
+    operator_id: 'hub-kkn',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
     national_id: '010892415',
@@ -89,7 +90,7 @@ export const DEFAULT_USERS = [
     email: 'driver.dara@voleakexpress.com',
     phone: '+855 98 777 001',
     role: 'driver',
-    operator_id: 'op-1',
+    operator_id: 'hub-8star',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
     national_id: '020745192',
@@ -108,7 +109,7 @@ export const DEFAULT_USERS = [
     email: 'driver.vathanak@voleakexpress.com',
     phone: '+855 77 999 003',
     role: 'driver',
-    operator_id: 'op-3',
+    operator_id: 'hub-powergrown',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
     created_at: '2026-08-01T08:00:00Z',
@@ -120,21 +121,21 @@ export const DEFAULT_USERS = [
     email: 'driver.bopha@voleakexpress.com',
     phone: '+855 88 444 004',
     role: 'driver',
-    operator_id: 'op-4',
+    operator_id: 'hub-kkn',
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
     created_at: '2026-08-01T08:00:00Z',
   },
 ];
 
-export const DEFAULT_COOPERATORS = [];
+export const DEFAULT_COOPERATORS = FACTORY_COOPERATORS;
 
-export const DEFAULT_ROUTES = [];
+export const DEFAULT_ROUTES = FACTORY_ROUTES;
 
 export const DEFAULT_SCHEDULES = [
   {
     id: 's-1',
-    route_id: 'r-1',
+    route_id: 'r-injae',
     bus_id: 'truck-1',
     driver_id: 'u-3',
     departure_time: '06:00 AM',
@@ -145,7 +146,7 @@ export const DEFAULT_SCHEDULES = [
   },
   {
     id: 's-2',
-    route_id: 'r-2',
+    route_id: 'r-moha',
     bus_id: 'truck-2',
     driver_id: 'u-4',
     departure_time: '08:30 AM',
@@ -156,7 +157,7 @@ export const DEFAULT_SCHEDULES = [
   },
   {
     id: 's-3',
-    route_id: 'r-3',
+    route_id: 'r-seduno',
     bus_id: 'truck-3',
     driver_id: 'u-5',
     departure_time: '07:00 AM',
@@ -171,7 +172,7 @@ export const DEFAULT_TRIPS = [
   {
     id: 'tr-1',
     trip_number: 'VKX-TRIP-901',
-    route_id: 'r-1',
+    route_id: 'r-injae',
     bus_id: 'truck-1',
     driver_name: 'Dara Chan',
     status: 'in_progress',
@@ -180,13 +181,13 @@ export const DEFAULT_TRIPS = [
     cargo_type: '40ft Container - Top Sports Textile Fabric Export',
     departure_time: '2026-08-19 06:00 AM',
     estimated_arrival: '2026-08-19 10:30 AM',
-    latitude: 10.6253,
-    longitude: 103.5234,
+    latitude: 11.5564,
+    longitude: 104.9282,
   },
   {
     id: 'tr-2',
     trip_number: 'VKX-TRIP-902',
-    route_id: 'r-2',
+    route_id: 'r-moha',
     bus_id: 'truck-2',
     driver_name: 'Sokha Meng',
     status: 'in_progress',
@@ -195,13 +196,13 @@ export const DEFAULT_TRIPS = [
     cargo_type: 'Heavy Container - Activewear Garment Consignment',
     departure_time: '2026-08-19 08:30 AM',
     estimated_arrival: '2026-08-19 11:50 AM',
-    latitude: 11.0821,
-    longitude: 105.8112,
+    latitude: 11.45,
+    longitude: 104.98,
   },
   {
     id: 'tr-3',
     trip_number: 'VKX-TRIP-903',
-    route_id: 'r-3',
+    route_id: 'r-seduno',
     bus_id: 'truck-3',
     driver_name: 'Vathanak Keo',
     status: 'scheduled',
@@ -219,13 +220,13 @@ export const DEFAULT_BOOKINGS = [
   {
     id: 'WB-8810',
     trip_id: 'tr-1',
-    sender: 'Top Sports Textile (TST Group)',
+    sender: 'Top Sports Textile',
     receiver: 'Manhattan Textile Mills Ltd',
-    passenger_name: 'Top Sports Textile (TST Group)',
-    seat_number: '35 Rolls (1,750m)',
+    passenger_name: 'Top Sports Textile',
+    seat_number: '1,750 kg',
     total_price: 4850.0,
     status: 'confirmed',
-    booking_channel: 'Direct Factory Contract',
+    booking_channel: 'Knitted Fabric',
     cod_amount: 0,
     qr_code: 'VKX-WB-8810-KH',
     booked_at: '2026-08-19T08:30:00Z',
@@ -233,13 +234,13 @@ export const DEFAULT_BOOKINGS = [
   {
     id: 'WB-8811',
     trip_id: 'tr-2',
-    sender: 'Top Sports Textile (TST Group)',
+    sender: 'Top Sports Textile',
     receiver: 'Crystal Garment International Ltd',
-    passenger_name: 'Top Sports Textile (TST Group)',
-    seat_number: '60 Cartons (6,000 pcs)',
+    passenger_name: 'Top Sports Textile',
+    seat_number: '1,200 kg',
     total_price: 8400.0,
     status: 'confirmed',
-    booking_channel: 'Maritime Export Consignment',
+    booking_channel: 'Knitted Fabric',
     cod_amount: 0,
     qr_code: 'VKX-WB-8811-KH',
     booked_at: '2026-08-19T09:15:00Z',
@@ -247,13 +248,13 @@ export const DEFAULT_BOOKINGS = [
   {
     id: 'WB-8812',
     trip_id: 'tr-3',
-    sender: 'Top Sports Textile (TST Group)',
+    sender: 'Top Sports Textile',
     receiver: 'Shenzhou International SEZ Plant',
-    passenger_name: 'Top Sports Textile (TST Group)',
-    seat_number: '80 Rolls (4,000m)',
+    passenger_name: 'Top Sports Textile',
+    seat_number: '2,400 kg',
     total_price: 9600.0,
     status: 'confirmed',
-    booking_channel: 'Cross-Border Freight',
+    booking_channel: 'Knitted Fabric',
     cod_amount: 0,
     qr_code: 'VKX-WB-8812-KH',
     booked_at: '2026-08-19T10:00:00Z',
@@ -355,12 +356,12 @@ export const DEFAULT_BUSES = [
 export const initialBuses = DEFAULT_BUSES;
 export const initialUsers = DEFAULT_USERS;
 export const initialCooperators = DEFAULT_COOPERATORS;
-export const initialRoutes = [];
+export const initialRoutes = DEFAULT_ROUTES;
 export const initialSchedules = DEFAULT_SCHEDULES;
 export const initialTrips = DEFAULT_TRIPS;
 export const initialBookings = DEFAULT_BOOKINGS;
 export const initialIncidents = DEFAULT_INCIDENTS;
-export const initialOperators = [];
+export const initialOperators = DEFAULT_OPERATORS;
 
 export async function fetchBuses() {
   try {
@@ -370,6 +371,8 @@ export async function fetchBuses() {
         ...t,
         capacity: Number(t.capacity || t.capacity_tons) || 25,
         capacity_tons: Number(t.capacity_tons || t.capacity) || 25,
+        gps_imei: t.gps_tracker_id || t.gps_imei || '',
+        gps_tracker_id: t.gps_tracker_id || '',
       }));
     }
     const { data, error } = await supabase.from('buses').select('*').order('created_at', { ascending: false });
@@ -378,6 +381,8 @@ export async function fetchBuses() {
         ...b,
         capacity: Number(b.capacity || b.capacity_tons) || 25,
         capacity_tons: Number(b.capacity_tons || b.capacity) || 25,
+        gps_imei: b.gps_tracker_id || b.gps_imei || '',
+        gps_tracker_id: b.gps_tracker_id || '',
       }));
     }
     return DEFAULT_BUSES;
@@ -401,14 +406,17 @@ export async function fetchUsers() {
 export async function fetchRoutes() {
   try {
     const { data, error } = await supabase.from('routes').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.warn('[Supabase fetchRoutes error]', error);
-      return [];
+    if (error || !data || data.length === 0) {
+      return DEFAULT_ROUTES;
     }
-    return data || [];
+    const filtered = data.filter((r) => !['r-1', 'r-2', 'r-3', 'r-4'].includes(r.id));
+    const map = new Map();
+    DEFAULT_ROUTES.forEach((r) => map.set(r.id, r));
+    filtered.forEach((r) => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    return Array.from(map.values());
   } catch (err) {
     console.warn('[Supabase fetchRoutes catch]', err);
-    return [];
+    return DEFAULT_ROUTES;
   }
 }
 
@@ -463,14 +471,17 @@ export async function fetchIncidents() {
 export async function fetchOperators() {
   try {
     const { data, error } = await supabase.from('operators').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.warn('[Supabase fetchOperators error]', error);
-      return [];
+    if (error || !data || data.length === 0) {
+      return DEFAULT_OPERATORS;
     }
-    return data || [];
+    const filtered = data.filter((o) => !o.id?.startsWith('op-') && !o.code?.startsWith('HUB-PP-01'));
+    const map = new Map();
+    DEFAULT_OPERATORS.forEach((o) => map.set(o.id, o));
+    filtered.forEach((o) => map.set(o.id, { ...(map.get(o.id) || {}), ...o }));
+    return Array.from(map.values());
   } catch (err) {
     console.warn('[Supabase fetchOperators catch]', err);
-    return [];
+    return DEFAULT_OPERATORS;
   }
 }
 
@@ -1065,7 +1076,10 @@ export async function fetchCooperators() {
       }
       return DEFAULT_COOPERATORS;
     }
-    return data;
+    const map = new Map();
+    DEFAULT_COOPERATORS.forEach((c) => map.set(c.id, c));
+    data.forEach((c) => map.set(c.id, { ...(map.get(c.id) || {}), ...c }));
+    return Array.from(map.values());
   } catch {
     return DEFAULT_COOPERATORS;
   }
@@ -1500,53 +1514,53 @@ export const TOP_SPORTS_TEXTILE_PRODUCTS = [
 ];
 
 export const TOP_SPORTS_TEXTILE_BRANCH_STOCK = [
-  // Phnom Penh Central Freight Hub (op-1)
-  { id: 'bs-1', branch_id: 'op-1', product_id: 'tst-fab-mw01', on_hand_quantity: 120, reserved_quantity: 25, warehouse_location: 'Fabric Bay A-1 (Textile Warehouse)', last_restocked: '2026-08-19' },
-  { id: 'bs-2', branch_id: 'op-1', product_id: 'tst-fab-uv02', on_hand_quantity: 85, reserved_quantity: 15, warehouse_location: 'Fabric Bay A-2 (Textile Warehouse)', last_restocked: '2026-08-18' },
-  { id: 'bs-3', branch_id: 'op-1', product_id: 'tst-fab-ab03', on_hand_quantity: 65, reserved_quantity: 10, warehouse_location: 'Fabric Bay A-3 (Textile Warehouse)', last_restocked: '2026-08-18' },
-  { id: 'bs-4', branch_id: 'op-1', product_id: 'tst-knt-sj04', on_hand_quantity: 150, reserved_quantity: 35, warehouse_location: 'Knit Storage Bay B-1', last_restocked: '2026-08-19' },
-  { id: 'bs-5', branch_id: 'op-1', product_id: 'tst-knt-dj05', on_hand_quantity: 110, reserved_quantity: 20, warehouse_location: 'Knit Storage Bay B-2', last_restocked: '2026-08-17' },
-  { id: 'bs-6', branch_id: 'op-1', product_id: 'tst-knt-in06', on_hand_quantity: 95, reserved_quantity: 18, warehouse_location: 'Knit Storage Bay B-3', last_restocked: '2026-08-17' },
-  { id: 'bs-7', branch_id: 'op-1', product_id: 'tst-knt-rb07', on_hand_quantity: 75, reserved_quantity: 12, warehouse_location: 'Trims Bay B-4', last_restocked: '2026-08-16' },
-  { id: 'bs-8', branch_id: 'op-1', product_id: 'tst-knt-ms08', on_hand_quantity: 130, reserved_quantity: 30, warehouse_location: 'Mesh Bay B-5', last_restocked: '2026-08-19' },
-  { id: 'bs-9', branch_id: 'op-1', product_id: 'tst-knt-ft09', on_hand_quantity: 80, reserved_quantity: 15, warehouse_location: 'Fleece Bay B-6', last_restocked: '2026-08-15' },
-  { id: 'bs-10', branch_id: 'op-1', product_id: 'tst-spx-ps10', on_hand_quantity: 140, reserved_quantity: 40, warehouse_location: 'Spandex Bay C-1', last_restocked: '2026-08-19' },
-  { id: 'bs-11', branch_id: 'op-1', product_id: 'tst-spx-ns11', on_hand_quantity: 105, reserved_quantity: 25, warehouse_location: 'Spandex Bay C-2', last_restocked: '2026-08-18' },
-  { id: 'bs-12', branch_id: 'op-1', product_id: 'tst-spx-cs12', on_hand_quantity: 90, reserved_quantity: 15, warehouse_location: 'Spandex Bay C-3', last_restocked: '2026-08-16' },
-  { id: 'bs-13', branch_id: 'op-1', product_id: 'tst-gar-rn13', on_hand_quantity: 60, reserved_quantity: 10, warehouse_location: 'Finished Goods Bay D-1', last_restocked: '2026-08-19' },
-  { id: 'bs-14', branch_id: 'op-1', product_id: 'tst-gar-fb14', on_hand_quantity: 55, reserved_quantity: 12, warehouse_location: 'Finished Goods Bay D-2', last_restocked: '2026-08-18' },
-  { id: 'bs-15', branch_id: 'op-1', product_id: 'tst-gar-bb15', on_hand_quantity: 40, reserved_quantity: 8, warehouse_location: 'Finished Goods Bay D-3', last_restocked: '2026-08-17' },
-  { id: 'bs-16', branch_id: 'op-1', product_id: 'tst-gar-pl16', on_hand_quantity: 45, reserved_quantity: 6, warehouse_location: 'Finished Goods Bay D-4', last_restocked: '2026-08-17' },
-  { id: 'bs-17', branch_id: 'op-1', product_id: 'tst-gar-lg17', on_hand_quantity: 70, reserved_quantity: 18, warehouse_location: 'Finished Goods Bay E-1', last_restocked: '2026-08-19' },
-  { id: 'bs-18', branch_id: 'op-1', product_id: 'tst-gar-sh18', on_hand_quantity: 85, reserved_quantity: 20, warehouse_location: 'Finished Goods Bay E-2', last_restocked: '2026-08-18' },
-  { id: 'bs-19', branch_id: 'op-1', product_id: 'tst-gar-jg19', on_hand_quantity: 50, reserved_quantity: 10, warehouse_location: 'Finished Goods Bay E-3', last_restocked: '2026-08-16' },
-  { id: 'bs-20', branch_id: 'op-1', product_id: 'tst-gar-ls20', on_hand_quantity: 48, reserved_quantity: 8, warehouse_location: 'Finished Goods Bay F-1', last_restocked: '2026-08-17' },
-  { id: 'bs-21', branch_id: 'op-1', product_id: 'tst-gar-hd21', on_hand_quantity: 52, reserved_quantity: 14, warehouse_location: 'Finished Goods Bay F-2', last_restocked: '2026-08-18' },
-  { id: 'bs-22', branch_id: 'op-1', product_id: 'tst-gar-jk22', on_hand_quantity: 38, reserved_quantity: 6, warehouse_location: 'Finished Goods Bay F-3', last_restocked: '2026-08-16' },
+  // 8 Star Phnom Penh Logistics Hub (hub-8star)
+  { id: 'bs-1', branch_id: 'hub-8star', product_id: 'tst-fab-mw01', on_hand_quantity: 120, reserved_quantity: 25, warehouse_location: 'Fabric Bay A-1 (Textile Warehouse)', last_restocked: '2026-08-19' },
+  { id: 'bs-2', branch_id: 'hub-8star', product_id: 'tst-fab-uv02', on_hand_quantity: 85, reserved_quantity: 15, warehouse_location: 'Fabric Bay A-2 (Textile Warehouse)', last_restocked: '2026-08-18' },
+  { id: 'bs-3', branch_id: 'hub-8star', product_id: 'tst-fab-ab03', on_hand_quantity: 65, reserved_quantity: 10, warehouse_location: 'Fabric Bay A-3 (Textile Warehouse)', last_restocked: '2026-08-18' },
+  { id: 'bs-4', branch_id: 'hub-8star', product_id: 'tst-knt-sj04', on_hand_quantity: 150, reserved_quantity: 35, warehouse_location: 'Knit Storage Bay B-1', last_restocked: '2026-08-19' },
+  { id: 'bs-5', branch_id: 'hub-8star', product_id: 'tst-knt-dj05', on_hand_quantity: 110, reserved_quantity: 20, warehouse_location: 'Knit Storage Bay B-2', last_restocked: '2026-08-17' },
+  { id: 'bs-6', branch_id: 'hub-8star', product_id: 'tst-knt-in06', on_hand_quantity: 95, reserved_quantity: 18, warehouse_location: 'Knit Storage Bay B-3', last_restocked: '2026-08-17' },
+  { id: 'bs-7', branch_id: 'hub-8star', product_id: 'tst-knt-rb07', on_hand_quantity: 75, reserved_quantity: 12, warehouse_location: 'Trims Bay B-4', last_restocked: '2026-08-16' },
+  { id: 'bs-8', branch_id: 'hub-8star', product_id: 'tst-knt-ms08', on_hand_quantity: 130, reserved_quantity: 30, warehouse_location: 'Mesh Bay B-5', last_restocked: '2026-08-19' },
+  { id: 'bs-9', branch_id: 'hub-8star', product_id: 'tst-knt-ft09', on_hand_quantity: 80, reserved_quantity: 15, warehouse_location: 'Fleece Bay B-6', last_restocked: '2026-08-15' },
+  { id: 'bs-10', branch_id: 'hub-8star', product_id: 'tst-spx-ps10', on_hand_quantity: 140, reserved_quantity: 40, warehouse_location: 'Spandex Bay C-1', last_restocked: '2026-08-19' },
+  { id: 'bs-11', branch_id: 'hub-8star', product_id: 'tst-spx-ns11', on_hand_quantity: 105, reserved_quantity: 25, warehouse_location: 'Spandex Bay C-2', last_restocked: '2026-08-18' },
+  { id: 'bs-12', branch_id: 'hub-8star', product_id: 'tst-spx-cs12', on_hand_quantity: 90, reserved_quantity: 15, warehouse_location: 'Spandex Bay C-3', last_restocked: '2026-08-16' },
+  { id: 'bs-13', branch_id: 'hub-8star', product_id: 'tst-gar-rn13', on_hand_quantity: 60, reserved_quantity: 10, warehouse_location: 'Finished Goods Bay D-1', last_restocked: '2026-08-19' },
+  { id: 'bs-14', branch_id: 'hub-8star', product_id: 'tst-gar-fb14', on_hand_quantity: 55, reserved_quantity: 12, warehouse_location: 'Finished Goods Bay D-2', last_restocked: '2026-08-18' },
+  { id: 'bs-15', branch_id: 'hub-8star', product_id: 'tst-gar-bb15', on_hand_quantity: 40, reserved_quantity: 8, warehouse_location: 'Finished Goods Bay D-3', last_restocked: '2026-08-17' },
+  { id: 'bs-16', branch_id: 'hub-8star', product_id: 'tst-gar-pl16', on_hand_quantity: 45, reserved_quantity: 6, warehouse_location: 'Finished Goods Bay D-4', last_restocked: '2026-08-17' },
+  { id: 'bs-17', branch_id: 'hub-8star', product_id: 'tst-gar-lg17', on_hand_quantity: 70, reserved_quantity: 18, warehouse_location: 'Finished Goods Bay E-1', last_restocked: '2026-08-19' },
+  { id: 'bs-18', branch_id: 'hub-8star', product_id: 'tst-gar-sh18', on_hand_quantity: 85, reserved_quantity: 20, warehouse_location: 'Finished Goods Bay E-2', last_restocked: '2026-08-18' },
+  { id: 'bs-19', branch_id: 'hub-8star', product_id: 'tst-gar-jg19', on_hand_quantity: 50, reserved_quantity: 10, warehouse_location: 'Finished Goods Bay E-3', last_restocked: '2026-08-16' },
+  { id: 'bs-20', branch_id: 'hub-8star', product_id: 'tst-gar-ls20', on_hand_quantity: 48, reserved_quantity: 8, warehouse_location: 'Finished Goods Bay F-1', last_restocked: '2026-08-17' },
+  { id: 'bs-21', branch_id: 'hub-8star', product_id: 'tst-gar-hd21', on_hand_quantity: 52, reserved_quantity: 14, warehouse_location: 'Finished Goods Bay F-2', last_restocked: '2026-08-18' },
+  { id: 'bs-22', branch_id: 'hub-8star', product_id: 'tst-gar-jk22', on_hand_quantity: 38, reserved_quantity: 6, warehouse_location: 'Finished Goods Bay F-3', last_restocked: '2026-08-16' },
 
-  // Sihanoukville Port Deep Sea Terminal (op-2 - Maritime Export Depot)
-  { id: 'bs-23', branch_id: 'op-2', product_id: 'tst-fab-mw01', on_hand_quantity: 180, reserved_quantity: 50, warehouse_location: 'Maritime Export Bay #1', last_restocked: '2026-08-19' },
-  { id: 'bs-24', branch_id: 'op-2', product_id: 'tst-knt-sj04', on_hand_quantity: 160, reserved_quantity: 45, warehouse_location: 'Maritime Export Bay #2', last_restocked: '2026-08-19' },
-  { id: 'bs-25', branch_id: 'op-2', product_id: 'tst-spx-ps10', on_hand_quantity: 150, reserved_quantity: 40, warehouse_location: 'Maritime Export Bay #3', last_restocked: '2026-08-18' },
-  { id: 'bs-26', branch_id: 'op-2', product_id: 'tst-gar-rn13', on_hand_quantity: 90, reserved_quantity: 25, warehouse_location: 'Export Container Bay #4', last_restocked: '2026-08-19' },
-  { id: 'bs-27', branch_id: 'op-2', product_id: 'tst-gar-fb14', on_hand_quantity: 80, reserved_quantity: 20, warehouse_location: 'Export Container Bay #5', last_restocked: '2026-08-19' },
-  { id: 'bs-28', branch_id: 'op-2', product_id: 'tst-gar-lg17', on_hand_quantity: 95, reserved_quantity: 30, warehouse_location: 'Export Container Bay #6', last_restocked: '2026-08-18' },
-  { id: 'bs-29', branch_id: 'op-2', product_id: 'tst-gar-hd21', on_hand_quantity: 45, reserved_quantity: 10, warehouse_location: 'Export Container Bay #7', last_restocked: '2026-08-17' },
+  // KKN Apparel Koh Kong Logistics Hub (hub-kkn)
+  { id: 'bs-23', branch_id: 'hub-kkn', product_id: 'tst-fab-mw01', on_hand_quantity: 180, reserved_quantity: 50, warehouse_location: 'Maritime Export Bay #1', last_restocked: '2026-08-19' },
+  { id: 'bs-24', branch_id: 'hub-kkn', product_id: 'tst-knt-sj04', on_hand_quantity: 160, reserved_quantity: 45, warehouse_location: 'Maritime Export Bay #2', last_restocked: '2026-08-19' },
+  { id: 'bs-25', branch_id: 'hub-kkn', product_id: 'tst-spx-ps10', on_hand_quantity: 150, reserved_quantity: 40, warehouse_location: 'Maritime Export Bay #3', last_restocked: '2026-08-18' },
+  { id: 'bs-26', branch_id: 'hub-kkn', product_id: 'tst-gar-rn13', on_hand_quantity: 90, reserved_quantity: 25, warehouse_location: 'Export Container Bay #4', last_restocked: '2026-08-19' },
+  { id: 'bs-27', branch_id: 'hub-kkn', product_id: 'tst-gar-fb14', on_hand_quantity: 80, reserved_quantity: 20, warehouse_location: 'Export Container Bay #5', last_restocked: '2026-08-19' },
+  { id: 'bs-28', branch_id: 'hub-kkn', product_id: 'tst-gar-lg17', on_hand_quantity: 95, reserved_quantity: 30, warehouse_location: 'Export Container Bay #6', last_restocked: '2026-08-18' },
+  { id: 'bs-29', branch_id: 'hub-kkn', product_id: 'tst-gar-hd21', on_hand_quantity: 45, reserved_quantity: 10, warehouse_location: 'Export Container Bay #7', last_restocked: '2026-08-17' },
 
-  // Bavet Border SEZ Terminal (op-3 - Cross-Border Regional Hub)
-  { id: 'bs-30', branch_id: 'op-3', product_id: 'tst-fab-uv02', on_hand_quantity: 70, reserved_quantity: 15, warehouse_location: 'Bavet Border Staging A-1', last_restocked: '2026-08-18' },
-  { id: 'bs-31', branch_id: 'op-3', product_id: 'tst-knt-ft09', on_hand_quantity: 60, reserved_quantity: 12, warehouse_location: 'Bavet Border Staging A-2', last_restocked: '2026-08-17' },
-  { id: 'bs-32', branch_id: 'op-3', product_id: 'tst-spx-ns11', on_hand_quantity: 80, reserved_quantity: 20, warehouse_location: 'Bavet Border Staging A-3', last_restocked: '2026-08-19' },
-  { id: 'bs-33', branch_id: 'op-3', product_id: 'tst-gar-sh18', on_hand_quantity: 65, reserved_quantity: 14, warehouse_location: 'Bavet Border Staging B-1', last_restocked: '2026-08-18' },
-  { id: 'bs-34', branch_id: 'op-3', product_id: 'tst-gar-jk22', on_hand_quantity: 35, reserved_quantity: 8, warehouse_location: 'Bavet Border Staging B-2', last_restocked: '2026-08-16' },
+  // Power Grown Kampong Speu Logistics Hub (hub-powergrown)
+  { id: 'bs-30', branch_id: 'hub-powergrown', product_id: 'tst-fab-uv02', on_hand_quantity: 70, reserved_quantity: 15, warehouse_location: 'Bavet Border Staging A-1', last_restocked: '2026-08-18' },
+  { id: 'bs-31', branch_id: 'hub-powergrown', product_id: 'tst-knt-ft09', on_hand_quantity: 60, reserved_quantity: 12, warehouse_location: 'Bavet Border Staging A-2', last_restocked: '2026-08-17' },
+  { id: 'bs-32', branch_id: 'hub-powergrown', product_id: 'tst-spx-ns11', on_hand_quantity: 80, reserved_quantity: 20, warehouse_location: 'Bavet Border Staging A-3', last_restocked: '2026-08-19' },
+  { id: 'bs-33', branch_id: 'hub-powergrown', product_id: 'tst-gar-sh18', on_hand_quantity: 65, reserved_quantity: 14, warehouse_location: 'Bavet Border Staging B-1', last_restocked: '2026-08-18' },
+  { id: 'bs-34', branch_id: 'hub-powergrown', product_id: 'tst-gar-jk22', on_hand_quantity: 35, reserved_quantity: 8, warehouse_location: 'Bavet Border Staging B-2', last_restocked: '2026-08-16' },
 ];
 
 export const TOP_SPORTS_TEXTILE_MOVEMENTS = [
-  { id: 'sm-1', product_id: 'tst-fab-mw01', movement_type: 'inbound', quantity_change: 120, from_branch_id: null, to_branch_id: 'op-1', reference_no: 'PO-TST-2026-8801', reason: 'Factory production batch inbound (Moisture Wicking Quick Dry 50m Rolls)', operator_name: 'Bong Leak', created_at: '2026-08-19 09:30 AM' },
-  { id: 'sm-2', product_id: 'tst-gar-fb14', movement_type: 'transfer', quantity_change: 40, from_branch_id: 'op-1', to_branch_id: 'op-2', reference_no: 'TR-TST-9042', reason: 'Export consignment transfer to Sihanoukville Port Terminal', operator_name: 'Sokha Meng', created_at: '2026-08-19 11:15 AM' },
-  { id: 'sm-3', product_id: 'tst-spx-ps10', movement_type: 'outbound', quantity_change: -25, from_branch_id: 'op-1', to_branch_id: null, reference_no: 'DO-ADIDAS-4410', reason: 'Dispatch to Manhattan Garment partner manufacturing plant', operator_name: 'Bong Leak', created_at: '2026-08-18 03:45 PM' },
-  { id: 'sm-4', product_id: 'tst-knt-sj04', movement_type: 'inbound', quantity_change: 80, from_branch_id: null, to_branch_id: 'op-1', reference_no: 'PO-TST-2026-8802', reason: 'Single Jersey Knitting Mill batch intake', operator_name: 'Bong Leak', created_at: '2026-08-18 10:00 AM' },
-  { id: 'sm-5', product_id: 'tst-gar-lg17', movement_type: 'transfer', quantity_change: 30, from_branch_id: 'op-1', to_branch_id: 'op-3', reference_no: 'TR-TST-9043', reason: 'Rebalancing compression leggings stock for Bavet SEZ partner plant', operator_name: 'Sokha Meng', created_at: '2026-08-17 02:20 PM' },
+  { id: 'sm-1', product_id: 'tst-fab-mw01', movement_type: 'inbound', quantity_change: 120, from_branch_id: null, to_branch_id: 'hub-8star', reference_no: 'PO-TST-2026-8801', reason: 'Factory production batch inbound (Moisture Wicking Quick Dry 50m Rolls)', operator_name: 'Bong Leak', created_at: '2026-08-19 09:30 AM' },
+  { id: 'sm-2', product_id: 'tst-gar-fb14', movement_type: 'transfer', quantity_change: 40, from_branch_id: 'hub-8star', to_branch_id: 'hub-kkn', reference_no: 'TR-TST-9042', reason: 'Export consignment transfer to Koh Kong Terminal', operator_name: 'Sokha Meng', created_at: '2026-08-19 11:15 AM' },
+  { id: 'sm-3', product_id: 'tst-spx-ps10', movement_type: 'outbound', quantity_change: -25, from_branch_id: 'hub-8star', to_branch_id: null, reference_no: 'DO-ADIDAS-4410', reason: 'Dispatch to Manhattan Garment partner manufacturing plant', operator_name: 'Bong Leak', created_at: '2026-08-18 03:45 PM' },
+  { id: 'sm-4', product_id: 'tst-knt-sj04', movement_type: 'inbound', quantity_change: 80, from_branch_id: null, to_branch_id: 'hub-8star', reference_no: 'PO-TST-2026-8802', reason: 'Single Jersey Knitting Mill batch intake', operator_name: 'Bong Leak', created_at: '2026-08-18 10:00 AM' },
+  { id: 'sm-5', product_id: 'tst-gar-lg17', movement_type: 'transfer', quantity_change: 30, from_branch_id: 'hub-8star', to_branch_id: 'hub-powergrown', reference_no: 'TR-TST-9043', reason: 'Rebalancing compression leggings stock for partner plant', operator_name: 'Sokha Meng', created_at: '2026-08-17 02:20 PM' },
 ];
 
 export const TOP_SPORTS_TEXTILE_COOP_STOCK = [
@@ -1666,18 +1680,18 @@ export async function seedTopSportsTextileToSupabase() {
 
 export async function addLocalProduct(newProd) {
   const payload = {
-    id: `prod-${Date.now()}`,
-    name: newProd.name || 'Industrial Cargo Item',
-    sku: newProd.sku || `VK-PRD-${Math.floor(Math.random() * 900 + 100)}`,
+    id: newProd.id || `prod-${Date.now()}`,
+    name: newProd.name || 'Textile Cargo Product',
+    sku: newProd.sku || `TST-PRD-${Math.floor(Math.random() * 900 + 100)}`,
     barcode: newProd.barcode || `${Math.floor(Math.random() * 900000000000 + 100000000000)}`,
-    category: newProd.category || 'General Industrial Cargo',
-    unit: newProd.unit || 'Pallet',
+    category: newProd.category || 'Knitted Fabrics (ក្រណាត់កប្បាស)',
+    unit: newProd.unit || 'Roll (50m)',
     default_price: Number(newProd.default_price) || 0.0,
     cost_price: Number(newProd.cost_price) || 0.0,
     min_stock_alert: Number(newProd.min_stock_alert) || 10,
-    warehouse_location: newProd.warehouse_location || 'General Staging Area',
-    image_url: newProd.image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-    description: newProd.description || 'Standard logistics freight consignment product.',
+    warehouse_location: newProd.warehouse_location || 'General',
+    image_url: newProd.image_url || 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80',
+    description: newProd.description || '',
     is_active: true,
     created_at: new Date().toISOString(),
   };
@@ -1690,9 +1704,10 @@ export async function addLocalProduct(newProd) {
       if (error.code === '23505') {
         throw new Error(`SKU "${payload.sku}" is already registered. Please generate or enter a different SKU.`);
       }
+      throw new Error(`Database error: ${error.message || 'Could not save product'}`);
     }
   } catch (err) {
-    if (err.message && err.message.includes('already registered')) {
+    if (err.message) {
       throw err;
     }
     console.warn('[Supabase addLocalProduct fallback]', err);
@@ -1827,6 +1842,7 @@ export async function addLocalStockMovement(newMovement) {
 }
 
 export async function addLocalBus(newBus) {
+  const isDriverBlank = !newBus.assigned_driver_name || newBus.assigned_driver_name.trim() === '' || newBus.assigned_driver_name === 'Unassigned';
   const truckPayload = {
     id: newBus.id || `truck-${Date.now()}`,
     plate_number: newBus.plate_number,
@@ -1835,13 +1851,16 @@ export async function addLocalBus(newBus) {
     status: newBus.status || 'active',
     truck_type: newBus.truck_type || 'Container Heavy Trailer (25T)',
     image_url: newBus.image_url || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80',
-    assigned_driver_name: newBus.assigned_driver_name || 'Dara Chan',
-    assigned_driver_phone: newBus.assigned_driver_phone || '+855 98 777 001',
+    assigned_driver_staff_id: isDriverBlank ? null : (newBus.assigned_driver_staff_id || null),
+    assigned_driver_name: isDriverBlank ? '' : newBus.assigned_driver_name,
+    assigned_driver_phone: isDriverBlank ? '' : (newBus.assigned_driver_phone || ''),
+    assigned_driver_avatar: isDriverBlank ? '' : (newBus.assigned_driver_avatar || ''),
     engine_power: newBus.engine_power || '450 HP Diesel',
     next_inspection_date: newBus.next_inspection_date || '2026-12-31',
     insurance_policy_number: newBus.insurance_policy_number || 'VKX-INS-8849-KH',
     home_hub_name: newBus.home_hub_name || 'Phnom Penh SEZ Central Hub',
     operator_id: (newBus.operator_id && newBus.operator_id !== 'op-1') ? newBus.operator_id : 'hub-pp-01',
+    gps_tracker_id: newBus.gps_tracker_id || newBus.gps_imei || null,
   };
 
   let savedData = null;
@@ -1873,7 +1892,7 @@ export async function addLocalBus(newBus) {
       const busPayload = {
         ...truckPayload,
         capacity: truckPayload.capacity_tons,
-        assigned_driver_email: newBus.assigned_driver_email || 'driver.dara@voleakexpress.com',
+        assigned_driver_email: isDriverBlank ? '' : (newBus.assigned_driver_email || ''),
       };
       const { data, error } = await supabase.from('buses').insert(busPayload).select().single();
       if (!error && data) {
@@ -1887,7 +1906,10 @@ export async function addLocalBus(newBus) {
   return {
     ...truckPayload,
     capacity: truckPayload.capacity_tons,
-    assigned_driver_email: newBus.assigned_driver_email || 'driver.dara@voleakexpress.com',
+    assigned_driver_email: isDriverBlank ? '' : (newBus.assigned_driver_email || ''),
+    assigned_driver_staff_id: isDriverBlank ? null : (newBus.assigned_driver_staff_id || null),
+    assigned_driver_avatar: isDriverBlank ? '' : (newBus.assigned_driver_avatar || ''),
+    gps_imei: truckPayload.gps_tracker_id || '',
     ...(savedData || {}),
   };
 }
@@ -1897,6 +1919,12 @@ export async function updateLocalBus(id, updates) {
   const truckUpdates = { ...updates };
   delete truckUpdates.capacity; // trucks uses capacity_tons
   delete truckUpdates.assigned_driver_email; // not in trucks schema
+
+  if (truckUpdates.gps_imei !== undefined || truckUpdates.gps_tracker_id !== undefined) {
+    truckUpdates.gps_tracker_id = truckUpdates.gps_tracker_id || truckUpdates.gps_imei || null;
+  }
+  delete truckUpdates.gps_imei;
+
   if (truckUpdates.operator_id === 'op-1') {
     truckUpdates.operator_id = 'hub-pp-01';
   }
@@ -1904,7 +1932,7 @@ export async function updateLocalBus(id, updates) {
   try {
     const { data, error } = await supabase.from('trucks').update(truckUpdates).eq('id', id).select().single();
     if (!error && data) {
-      return { ...updates, ...data };
+      return { ...updates, ...data, gps_imei: data.gps_tracker_id || '' };
     }
   } catch (err) {
     console.warn('[Supabase updateLocalBus trucks error]', err);
@@ -1936,4 +1964,121 @@ export async function deleteLocalBus(id) {
   }
 
   return true;
+}
+
+/**
+ * Store or update GPS device and IMEI in Supabase (both gps_devices and trucks tables)
+ */
+export async function syncGpsTrackerToSupabase(imei, plateNumber, extraDeviceData = {}) {
+  if (!imei) return { success: false, error: 'No IMEI provided' };
+
+  try {
+    const cleanImei = String(imei).trim();
+    const cleanPlate = plateNumber && plateNumber !== 'unassigned' ? plateNumber.trim() : null;
+
+    // 1. Primary: Upsert into 'gps_devices' table (Dedicated GPS Hardware Inventory)
+    try {
+      const isMoving = Number(extraDeviceData.speed) > 0 || extraDeviceData.motionStatus === 'Moving';
+      const motionStatus = isMoving
+        ? (Number(extraDeviceData.speed) > 0 ? `Moving (${Math.round(extraDeviceData.speed)} km/h)` : 'Moving')
+        : 'Parking';
+
+      const gpsPayload = {
+        imei: cleanImei,
+        device_model: extraDeviceData.deviceModel || extraDeviceData.productType || 'GT06',
+        plate_number: cleanPlate,
+        sim_phone: extraDeviceData.simPhone || extraDeviceData.accountPhone || null,
+        battery_level: Number(extraDeviceData.battery) || 100,
+        status: motionStatus,
+        last_latitude: extraDeviceData.latitude ? Number(extraDeviceData.latitude) : null,
+        last_longitude: extraDeviceData.longitude ? Number(extraDeviceData.longitude) : null,
+        last_sync_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: gpsData, error: gpsErr } = await supabase
+        .from('gps_devices')
+        .upsert(gpsPayload, { onConflict: 'imei' })
+        .select();
+
+      if (!gpsErr) {
+        console.log(`[Supabase] Stored GPS IMEI ${cleanImei} in gps_devices table`);
+      } else {
+        console.warn('[Supabase gps_devices upsert warning]', gpsErr);
+      }
+    } catch (gErr) {
+      console.warn('[Supabase gps_devices catch]', gErr);
+    }
+
+    // 2. Associate with truck in 'trucks' table
+    if (cleanPlate) {
+      // Clear this IMEI from any other truck first
+      await supabase
+        .from('trucks')
+        .update({ gps_tracker_id: null })
+        .eq('gps_tracker_id', cleanImei)
+        .neq('plate_number', cleanPlate);
+
+      // Save the IMEI to the target truck
+      const { data, error } = await supabase
+        .from('trucks')
+        .update({ gps_tracker_id: cleanImei })
+        .eq('plate_number', cleanPlate)
+        .select('id, plate_number, gps_tracker_id');
+
+      if (!error) {
+        console.log(`[Supabase] Linked GPS IMEI ${cleanImei} to truck ${cleanPlate}`);
+      }
+    } else {
+      // Unassign this IMEI from any truck
+      await supabase
+        .from('trucks')
+        .update({ gps_tracker_id: null })
+        .eq('gps_tracker_id', cleanImei);
+      console.log(`[Supabase] Unassigned GPS IMEI ${cleanImei} from fleet`);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.warn('[Supabase syncGpsTrackerToSupabase error]', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetch all registered GPS devices from Supabase gps_devices table
+ */
+export async function fetchGpsDevicesFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('gps_devices')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[Supabase fetchGpsDevicesFromSupabase error]', err);
+  }
+  return [];
+}
+
+/**
+ * Fetch all trucks with assigned GPS IMEIs from Supabase
+ */
+export async function fetchStoredGpsImeis() {
+  try {
+    const { data, error } = await supabase
+      .from('trucks')
+      .select('id, plate_number, model, gps_tracker_id')
+      .not('gps_tracker_id', 'is', null);
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[Supabase fetchStoredGpsImeis error]', err);
+  }
+  return [];
 }

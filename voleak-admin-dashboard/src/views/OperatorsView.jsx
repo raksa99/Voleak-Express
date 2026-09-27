@@ -45,6 +45,8 @@ import {
 } from 'react-leaflet';
 import L from 'leaflet';
 import {
+  DEFAULT_OPERATORS,
+  DEFAULT_ROUTES,
   addLocalOperator,
   updateLocalOperator,
   deleteLocalOperator,
@@ -287,8 +289,17 @@ export default function OperatorsView({
   const [selectedHubForDriver, setSelectedHubForDriver] = useState(null);
 
   // Integrated Industrial Corridors & Shipping Routes State
-  const [localRoutes, setLocalRoutes] = useState(routes || []);
-  const routesList = (routes && routes.length > 0) ? routes : (localRoutes || []);
+  const [localRoutes, setLocalRoutes] = useState(() => {
+    return Array.isArray(routes) && routes.length > 0 ? routes : DEFAULT_ROUTES;
+  });
+  const routesList = useMemo(() => {
+    const isMock = (id) => ['r-1', 'r-2', 'r-3', 'r-4'].includes(id);
+    const map = new Map();
+    DEFAULT_ROUTES.filter((r) => !isMock(r.id)).forEach((r) => map.set(r.id, r));
+    const incoming = (routes && routes.length > 0) ? routes : (localRoutes && localRoutes.length > 0 ? localRoutes : []);
+    incoming.filter((r) => !isMock(r.id)).forEach((r) => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    return Array.from(map.values());
+  }, [routes, localRoutes]);
   const updateRoutes = setRoutes || setLocalRoutes;
 
   const [showAddRouteModal, setShowAddRouteModal] = useState(false);
@@ -411,29 +422,101 @@ export default function OperatorsView({
     amenities: ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
   });
 
-  // Only use live operators fetched from Supabase
+  // All real cooperator partner hubs (excluding mock hubs)
   const allOperators = useMemo(() => {
-    const list = Array.isArray(operators) ? operators : [];
-    return list.map((op, idx) => ({
-      ...op,
-      id: op.id || `hub-${idx + 1}`,
-      name: op.name || 'Industrial Logistics Hub',
-      code: op.code || `HUB-${idx + 1}`,
-      latitude: Number(op.latitude) || 11.5564,
-      longitude: Number(op.longitude) || 104.9282,
-      province: op.province || 'Phnom Penh',
-      address: op.address || 'National Highway Logistics Corridor',
-      manager_name: op.manager_name || 'Hub Dispatch Manager',
-      manager_phone: op.manager_phone || op.contact_phone || '',
-      operating_hours: op.operating_hours || '24/7 Gate Dispatch',
-      loading_bays: Number(op.loading_bays) || 0,
-      weighbridge_capacity: op.weighbridge_capacity || '80 Tons Axle Scale',
-      fleet_count: Number(op.fleet_count) || 0,
-      rating: Number(op.rating) || 5.0,
-      status: op.status || 'active',
-      amenities: op.amenities || ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
-    }));
-  }, [operators]);
+    const isMockHub = (op) => {
+      const id = String(op?.id || '');
+      const code = String(op?.code || '');
+      return (
+        id.startsWith('op-') ||
+        code.startsWith('HUB-PP-01') ||
+        code.startsWith('HUB-SHV-02') ||
+        code.startsWith('HUB-BVT-03') ||
+        code.startsWith('HUB-PPT-04') ||
+        code.startsWith('HUB-REP-05')
+      );
+    };
+
+    const hubMap = new Map();
+
+    // 1. Add all factory partner hubs from DEFAULT_OPERATORS
+    DEFAULT_OPERATORS.filter((o) => !isMockHub(o)).forEach((op, idx) => {
+      const id = op.id || `hub-${idx + 1}`;
+      hubMap.set(id, {
+        ...op,
+        id,
+        name: op.name || 'Industrial Logistics Hub',
+        code: op.code || `HUB-${idx + 1}`,
+        latitude: Number(op.latitude) || 11.5564,
+        longitude: Number(op.longitude) || 104.9282,
+        province: op.province || 'Phnom Penh',
+        address: op.address || 'National Highway Logistics Corridor',
+        manager_name: op.manager_name || 'Hub Dispatch Manager',
+        manager_phone: op.manager_phone || op.contact_phone || '',
+        operating_hours: op.operating_hours || '24/7 Gate Dispatch',
+        loading_bays: Number(op.loading_bays) || 8,
+        weighbridge_capacity: op.weighbridge_capacity || '80 Tons Axle Scale',
+        fleet_count: Number(op.fleet_count) || 2,
+        rating: Number(op.rating) || 5.0,
+        status: op.status || 'active',
+        amenities: op.amenities || ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
+      });
+    });
+
+    // 2. Merge live operators from Supabase (excluding mock hubs)
+    (Array.isArray(operators) ? operators : [])
+      .filter((o) => !isMockHub(o))
+      .forEach((op, idx) => {
+        const id = op.id || `hub-live-${idx + 1}`;
+        const existing = hubMap.get(id) || {};
+        hubMap.set(id, {
+          ...existing,
+          ...op,
+          id,
+          latitude: Number(op.latitude) || existing.latitude || 11.5564,
+          longitude: Number(op.longitude) || existing.longitude || 104.9282,
+          loading_bays: Number(op.loading_bays) || existing.loading_bays || 8,
+          fleet_count: Number(op.fleet_count) || existing.fleet_count || 2,
+          status: op.status || existing.status || 'active',
+          amenities: op.amenities || existing.amenities || ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
+        });
+      });
+
+    // 3. Automatically incorporate all Cooperator Partner Hubs
+    allCooperators.forEach((cop, idx) => {
+      const hubId = cop.operator_id || `hub-${cop.id || idx}`;
+      if (hubId.startsWith('op-')) return;
+      const lat = Number(cop.latitude);
+      const lng = Number(cop.longitude);
+
+      if (lat && lng) {
+        const existing = hubMap.get(hubId) || {};
+        hubMap.set(hubId, {
+          ...existing,
+          id: hubId,
+          name: cop.hub_name || existing.name || `[${cop.short_name || cop.name}] ${cop.province || 'Cambodia'} Logistics Hub`,
+          code: existing.code || `HUB-${(cop.short_name || 'COP').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)}-${idx + 1}`,
+          latitude: lat,
+          longitude: lng,
+          province: cop.province || existing.province || 'Phnom Penh',
+          address: cop.address || existing.address || `${cop.province || 'Cambodia'} Industrial Zone`,
+          manager_name: cop.contact_person || existing.manager_name || `${cop.short_name || cop.name} Dispatch`,
+          manager_phone: cop.phone || existing.manager_phone || '+855 12 888 777',
+          operating_hours: existing.operating_hours || '24/7 Gate Dispatch',
+          loading_bays: Number(existing.loading_bays) || 8,
+          weighbridge_capacity: existing.weighbridge_capacity || '80 Tons Axle Scale',
+          fleet_count: Number(existing.fleet_count) || 2,
+          rating: Number(cop.rating) || Number(existing.rating) || 5.0,
+          status: cop.status || existing.status || 'active',
+          amenities: existing.amenities || ['Driver Rest Lounge', 'Diesel Fuel Pump', '24/7 Security'],
+          cooperator_id: cop.id,
+          short_name: cop.short_name,
+        });
+      }
+    });
+
+    return Array.from(hubMap.values());
+  }, [operators, allCooperators]);
 
   // Filtered operators for map and directory
   const filteredOperators = useMemo(() => {

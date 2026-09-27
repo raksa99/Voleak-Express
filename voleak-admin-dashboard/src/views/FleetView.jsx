@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import {
   Truck,
@@ -15,6 +15,8 @@ import {
   Phone,
   Mail,
   User,
+  UserX,
+  UserMinus,
   Search,
   Filter,
   Layers,
@@ -26,20 +28,46 @@ import {
   Image as ImageIcon,
   UploadCloud,
   Camera,
+  Radio,
+  Satellite,
 } from 'lucide-react';
 import { addLocalBus, updateLocalBus, deleteLocalBus, DEFAULT_USERS } from '../lib/supabaseClient';
 import SweetAlertModal from '../components/SweetAlertModal';
+import DagpsConfigModal from '../components/DagpsConfigModal';
+import {
+  getCachedGpsDevices,
+  assignDeviceToTruck,
+  getDeviceAssignments,
+} from '../lib/dagpsService';
 
 const DEFAULT_TRUCK_IMAGE =
   'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80';
 
-export default function FleetView({ buses = [], setBuses, users = [] }) {
+export default function FleetView({ buses = [], setBuses, users = [], setActiveTab }) {
   const { t } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTruck, setEditingTruck] = useState(null);
   const [deletingTruck, setDeletingTruck] = useState(null);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // GPS Device Assignment State
+  const [isGpsModalOpen, setIsGpsModalOpen] = useState(false);
+  const [gpsAssignments, setGpsAssignments] = useState(getDeviceAssignments());
+  const [availableGpsDevices, setAvailableGpsDevices] = useState(getCachedGpsDevices());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setGpsAssignments(getDeviceAssignments());
+      setAvailableGpsDevices(getCachedGpsDevices());
+    };
+    window.addEventListener('dagps_config_updated', handleUpdate);
+    window.addEventListener('dagps_telemetry_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('dagps_config_updated', handleUpdate);
+      window.removeEventListener('dagps_telemetry_updated', handleUpdate);
+    };
+  }, []);
 
   // Staff & Drivers list resolution
   const staffList = useMemo(() => {
@@ -67,7 +95,7 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
     status: 'active',
     truck_type: 'Container Heavy Trailer (25T)',
     image_url: DEFAULT_TRUCK_IMAGE,
-    assigned_driver_staff_id: '',
+    assigned_driver_staff_id: 'none',
     assigned_driver_name: '',
     assigned_driver_phone: '',
     assigned_driver_email: '',
@@ -75,10 +103,11 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
     engine_power: '450 HP Diesel',
     next_inspection_date: '2026-12-31',
     insurance_policy_number: 'VKX-INS-8849-KH',
+    gps_imei: '',
+    gps_device_name: '',
   });
 
   const resetForm = () => {
-    const defaultDriver = driversList[0] || staffList[0];
     setFormData({
       plate_number: '',
       model: '',
@@ -86,14 +115,16 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
       status: 'active',
       truck_type: 'Container Heavy Trailer (25T)',
       image_url: DEFAULT_TRUCK_IMAGE,
-      assigned_driver_staff_id: defaultDriver?.id || '',
-      assigned_driver_name: defaultDriver?.full_name || defaultDriver?.name || 'Dara Chan',
-      assigned_driver_phone: defaultDriver?.phone || '+855 98 777 001',
-      assigned_driver_email: defaultDriver?.email || 'driver.dara@voleakexpress.com',
-      assigned_driver_avatar: defaultDriver?.avatar || defaultDriver?.avatar_url || '',
+      assigned_driver_staff_id: 'none',
+      assigned_driver_name: '',
+      assigned_driver_phone: '',
+      assigned_driver_email: '',
+      assigned_driver_avatar: '',
       engine_power: '450 HP Diesel',
       next_inspection_date: '2026-12-31',
       insurance_policy_number: 'VKX-INS-8849-KH',
+      gps_imei: '',
+      gps_device_name: '',
     });
   };
 
@@ -104,12 +135,25 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
 
   const openEditModal = (truck) => {
     setEditingTruck(truck);
-    const matchedStaff = staffList.find(
-      (s) =>
-        (truck.assigned_driver_staff_id && s.id === truck.assigned_driver_staff_id) ||
-        (s.full_name && s.full_name.toLowerCase() === (truck.assigned_driver_name || '').toLowerCase()) ||
-        (s.name && s.name.toLowerCase() === (truck.assigned_driver_name || '').toLowerCase()) ||
-        (s.phone && s.phone === truck.assigned_driver_phone)
+    const hasDriver = Boolean(
+      truck.assigned_driver_name &&
+      truck.assigned_driver_name.trim() !== '' &&
+      truck.assigned_driver_name.toLowerCase() !== 'unassigned' &&
+      truck.assigned_driver_name.toLowerCase() !== 'none'
+    );
+
+    const matchedStaff = hasDriver
+      ? staffList.find(
+          (s) =>
+            (truck.assigned_driver_staff_id && s.id === truck.assigned_driver_staff_id) ||
+            (s.full_name && s.full_name.toLowerCase() === (truck.assigned_driver_name || '').toLowerCase()) ||
+            (s.name && s.name.toLowerCase() === (truck.assigned_driver_name || '').toLowerCase()) ||
+            (s.phone && s.phone === truck.assigned_driver_phone)
+        )
+      : null;
+
+    const matchedGps = Object.entries(gpsAssignments).find(
+      ([imei, plate]) => plate === truck.plate_number
     );
 
     setFormData({
@@ -119,22 +163,35 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
       status: truck.status || 'active',
       truck_type: truck.truck_type || 'Container Heavy Trailer (25T)',
       image_url: truck.image_url || truck.photo_url || DEFAULT_TRUCK_IMAGE,
-      assigned_driver_staff_id: matchedStaff?.id || truck.assigned_driver_staff_id || 'custom',
-      assigned_driver_name: truck.assigned_driver_name || matchedStaff?.full_name || matchedStaff?.name || 'Dara Chan',
-      assigned_driver_phone: truck.assigned_driver_phone || matchedStaff?.phone || '+855 98 777 001',
-      assigned_driver_email:
-        truck.assigned_driver_email ||
-        matchedStaff?.email ||
-        `${(truck.assigned_driver_name || 'driver').toLowerCase().replace(/\s+/g, '.')}@voleakexpress.com`,
-      assigned_driver_avatar: truck.assigned_driver_avatar || matchedStaff?.avatar || matchedStaff?.avatar_url || '',
+      assigned_driver_staff_id: hasDriver
+        ? (matchedStaff?.id || truck.assigned_driver_staff_id || 'custom')
+        : 'none',
+      assigned_driver_name: hasDriver ? (truck.assigned_driver_name || '') : '',
+      assigned_driver_phone: hasDriver ? (truck.assigned_driver_phone || '') : '',
+      assigned_driver_email: hasDriver ? (truck.assigned_driver_email || '') : '',
+      assigned_driver_avatar: hasDriver ? (truck.assigned_driver_avatar || matchedStaff?.avatar || '') : '',
       engine_power: truck.engine_power || '450 HP Diesel',
       next_inspection_date: truck.next_inspection_date || '2026-12-31',
       insurance_policy_number: truck.insurance_policy_number || 'VKX-INS-8849-KH',
+      gps_imei: truck.gps_imei || matchedGps?.[0] || '',
+      gps_device_name: truck.gps_device_name || '',
     });
   };
 
   const handleStaffDriverSelect = (staffId) => {
-    if (!staffId || staffId === 'custom') {
+    if (!staffId || staffId === 'none') {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_driver_staff_id: 'none',
+        assigned_driver_name: '',
+        assigned_driver_phone: '',
+        assigned_driver_email: '',
+        assigned_driver_avatar: '',
+      }));
+      return;
+    }
+
+    if (staffId === 'custom') {
       setFormData((prev) => ({
         ...prev,
         assigned_driver_staff_id: 'custom',
@@ -162,8 +219,19 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
     }
   };
 
+  const handleRemoveDriverFromForm = () => {
+    setFormData((prev) => ({
+      ...prev,
+      assigned_driver_staff_id: 'none',
+      assigned_driver_name: '',
+      assigned_driver_phone: '',
+      assigned_driver_email: '',
+      assigned_driver_avatar: '',
+    }));
+  };
+
   const currentSelectedStaff = useMemo(() => {
-    if (!formData.assigned_driver_staff_id || formData.assigned_driver_staff_id === 'custom') {
+    if (!formData.assigned_driver_staff_id || formData.assigned_driver_staff_id === 'custom' || formData.assigned_driver_staff_id === 'none') {
       return null;
     }
     return staffList.find((s) => s.id === formData.assigned_driver_staff_id);
@@ -189,12 +257,23 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
 
     setIsSubmitting(true);
     try {
+      const isBlank = formData.assigned_driver_staff_id === 'none' || !formData.assigned_driver_name?.trim();
       const payload = {
         ...formData,
         capacity: Number(formData.capacity) || 25,
         capacity_tons: Number(formData.capacity) || 25,
+        assigned_driver_staff_id: isBlank ? null : formData.assigned_driver_staff_id,
+        assigned_driver_name: isBlank ? '' : formData.assigned_driver_name.trim(),
+        assigned_driver_phone: isBlank ? '' : (formData.assigned_driver_phone?.trim() || ''),
+        assigned_driver_email: isBlank ? '' : (formData.assigned_driver_email?.trim() || ''),
+        assigned_driver_avatar: isBlank ? '' : (formData.assigned_driver_avatar || ''),
         operator_id: 'hub-pp-01',
       };
+
+      if (formData.gps_imei) {
+        assignDeviceToTruck(formData.gps_imei, formData.plate_number);
+        setGpsAssignments(getDeviceAssignments());
+      }
 
       const newTruck = await addLocalBus(payload);
       setBuses((prev) => [newTruck, ...prev.filter((b) => b.id !== newTruck.id)]);
@@ -214,11 +293,29 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
 
     setIsSubmitting(true);
     try {
+      const isBlank = formData.assigned_driver_staff_id === 'none' || !formData.assigned_driver_name?.trim();
       const payload = {
         ...formData,
         capacity: Number(formData.capacity) || 25,
         capacity_tons: Number(formData.capacity) || 25,
+        assigned_driver_staff_id: isBlank ? null : formData.assigned_driver_staff_id,
+        assigned_driver_name: isBlank ? '' : formData.assigned_driver_name.trim(),
+        assigned_driver_phone: isBlank ? '' : (formData.assigned_driver_phone?.trim() || ''),
+        assigned_driver_email: isBlank ? '' : (formData.assigned_driver_email?.trim() || ''),
+        assigned_driver_avatar: isBlank ? '' : (formData.assigned_driver_avatar || ''),
       };
+
+      if (formData.gps_imei) {
+        assignDeviceToTruck(formData.gps_imei, formData.plate_number);
+      } else {
+        const prevAssignedImei = Object.keys(gpsAssignments).find(
+          (k) => gpsAssignments[k] === editingTruck.plate_number
+        );
+        if (prevAssignedImei) {
+          assignDeviceToTruck(prevAssignedImei, null);
+        }
+      }
+      setGpsAssignments(getDeviceAssignments());
 
       if (updateLocalBus) {
         await updateLocalBus(editingTruck.id, payload);
@@ -227,6 +324,9 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
       setBuses((prev) =>
         prev.map((b) => (b.id === editingTruck.id ? { ...b, ...payload } : b))
       );
+      if (selectedTruck && selectedTruck.id === editingTruck.id) {
+        setSelectedTruck((prev) => ({ ...prev, ...payload }));
+      }
       setEditingTruck(null);
       resetForm();
     } catch (err) {
@@ -234,6 +334,36 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
       alert('Failed to update truck: ' + (err.message || err));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickRemoveDriver = async (truck, e) => {
+    if (e) e.stopPropagation();
+    const confirmed = window.confirm(
+      `Remove driver from truck "${truck.plate_number}"? The truck will have a blank driver and can be assigned later.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const blankData = {
+        assigned_driver_staff_id: null,
+        assigned_driver_name: '',
+        assigned_driver_phone: '',
+        assigned_driver_email: '',
+        assigned_driver_avatar: '',
+      };
+      if (updateLocalBus) {
+        await updateLocalBus(truck.id, blankData);
+      }
+      setBuses((prev) =>
+        prev.map((b) => (b.id === truck.id ? { ...b, ...blankData } : b))
+      );
+      if (selectedTruck && selectedTruck.id === truck.id) {
+        setSelectedTruck((prev) => ({ ...prev, ...blankData }));
+      }
+    } catch (err) {
+      console.error('Error removing driver:', err);
+      alert('Failed to remove driver: ' + (err.message || err));
     }
   };
 
@@ -298,13 +428,29 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
           </div>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/25 transition-all shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>+ Add Truck Details</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsGpsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 border border-amber-500/30 hover:border-amber-500 text-amber-400 font-extrabold text-xs shadow-sm transition-all shrink-0 hover:bg-slate-800/90"
+            title="Configure GPS Satellites & Assign Trackers to Trucks"
+          >
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>Pair GPS Hardware</span>
+            {Object.keys(gpsAssignments).length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-mono">
+                {Object.keys(gpsAssignments).length} Paired
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/25 transition-all shrink-0"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Add Truck Details</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. SUMMARY METRICS */}
@@ -402,10 +548,14 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
           const status = truck.status || 'active';
           const isMaintenance = status === 'maintenance';
           const truckImg = truck.image_url || truck.photo_url || DEFAULT_TRUCK_IMAGE;
-          const driverPhone = truck.assigned_driver_phone || '+855 98 777 001';
-          const driverEmail =
-            truck.assigned_driver_email ||
-            `${(truck.assigned_driver_name || 'driver').toLowerCase().replace(/\s+/g, '.')}@voleakexpress.com`;
+          const hasDriver = Boolean(
+            truck.assigned_driver_name &&
+            truck.assigned_driver_name.trim() !== '' &&
+            truck.assigned_driver_name.toLowerCase() !== 'unassigned' &&
+            truck.assigned_driver_name.toLowerCase() !== 'none'
+          );
+          const driverPhone = hasDriver ? truck.assigned_driver_phone : '';
+          const driverEmail = hasDriver ? truck.assigned_driver_email : '';
 
           return (
             <div
@@ -469,49 +619,128 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-sky-500" /> Assigned Driver:
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate max-w-[180px]">
-                      {truck.assigned_driver_avatar && (
-                        <img
-                          src={truck.assigned_driver_avatar}
-                          alt={truck.assigned_driver_name}
-                          className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                        />
+                  {hasDriver ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <User className="w-3.5 h-3.5 text-sky-500" /> Assigned Driver:
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate max-w-[180px]">
+                          {truck.assigned_driver_avatar && (
+                            <img
+                              src={truck.assigned_driver_avatar}
+                              alt={truck.assigned_driver_name}
+                              className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                            />
+                          )}
+                          <span className="truncate">{truck.assigned_driver_name}</span>
+                        </span>
+                      </div>
+
+                      {/* Driver Telephone */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5 text-emerald-500" /> Driver Phone:
+                        </span>
+                        {driverPhone ? (
+                          <a
+                            href={`tel:${driverPhone}`}
+                            className="font-mono font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                          >
+                            {driverPhone}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </div>
+
+                      {/* Driver Email */}
+                      {driverEmail && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5 text-sky-500" /> Driver Email:
+                          </span>
+                          <a
+                            href={`mailto:${driverEmail}`}
+                            className="font-medium text-slate-700 dark:text-slate-300 hover:text-sky-500 dark:hover:text-sky-400 hover:underline truncate max-w-[170px]"
+                            title={driverEmail}
+                          >
+                            {driverEmail}
+                          </a>
+                        </div>
                       )}
-                      <span className="truncate">{truck.assigned_driver_name || 'Dara Chan'}</span>
-                    </span>
-                  </div>
-
-                  {/* Driver Telephone */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-emerald-500" /> Driver Phone:
-                    </span>
-                    <a
-                      href={`tel:${driverPhone}`}
-                      className="font-mono font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                    >
-                      {driverPhone}
-                    </a>
-                  </div>
-
-                  {/* Driver Email */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Mail className="w-3.5 h-3.5 text-sky-500" /> Driver Email:
-                    </span>
-                    <a
-                      href={`mailto:${driverEmail}`}
-                      className="font-medium text-slate-700 dark:text-slate-300 hover:text-sky-500 dark:hover:text-sky-400 hover:underline truncate max-w-[170px]"
-                      title={driverEmail}
-                    >
-                      {driverEmail}
-                    </a>
-                  </div>
+                    </>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700/80 text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1 rounded-lg bg-amber-500/10 text-amber-500">
+                          <UserX className="w-3.5 h-3.5" />
+                        </span>
+                        <div>
+                          <span className="font-bold text-amber-600 dark:text-amber-400 block text-[11px]">
+                            No Driver Assigned
+                          </span>
+                          <span className="text-[10px] text-slate-400">Blank • Assign later</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => openEditModal(truck)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-slate-950 font-bold text-[11px] transition-all flex items-center gap-1"
+                      >
+                        + Assign Driver
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* DAGPS Live Telemetry or Assign GPS Prompt */}
+                {(() => {
+                  const assignedImei = Object.entries(gpsAssignments).find(
+                    ([imei, plate]) => plate === truck.plate_number
+                  )?.[0] || truck.gps_imei;
+                  const matchedGpsDev = availableGpsDevices.find(
+                    (d) => d.imei === assignedImei || d.plateNumber === truck.plate_number
+                  );
+
+                  if (assignedImei || matchedGpsDev || truck.dagps_live) {
+                    const dev = matchedGpsDev || {
+                      userName: truck.gps_device_name || 'GPS Tracker',
+                      motionStatus: truck.motion_status || 'Parking',
+                      battery: truck.battery || 70,
+                      speed: truck.speed || 0,
+                    };
+                    return (
+                      <div className="flex items-center justify-between p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                        <div className="flex items-center gap-1.5 font-extrabold text-emerald-600 dark:text-emerald-400">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="truncate max-w-[130px]">
+                            {dev.userName || dev.deviceModel || 'GPS Online'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span>Bat: <strong className="text-emerald-600 dark:text-emerald-400">{dev.battery || 70}%</strong></span>
+                          <span>•</span>
+                          <span className="font-mono text-purple-600 dark:text-purple-400">{dev.speed || 0} km/h</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700/80 text-xs">
+                      <span className="text-slate-400 text-[11px] flex items-center gap-1.5">
+                        <Satellite className="w-3.5 h-3.5 text-slate-400" />
+                        No GPS tracker paired
+                      </span>
+                      <button
+                        onClick={() => openEditModal(truck)}
+                        className="text-[11px] font-bold text-amber-500 hover:text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                      >
+                        + Assign GPS
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* Action Buttons */}
                 <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
@@ -523,6 +752,16 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                     <span>Inspect Details</span>
                   </button>
 
+                  {setActiveTab && (
+                    <button
+                      onClick={() => setActiveTab('liveMap')}
+                      className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-500 font-bold transition-all"
+                      title="Track Truck on Live GPS Map"
+                    >
+                      <Radio className="w-4 h-4 animate-pulse" />
+                    </button>
+                  )}
+
                   <button
                     onClick={() => openEditModal(truck)}
                     className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-sky-500/10 hover:text-sky-500 text-slate-400 transition-all"
@@ -530,6 +769,16 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
+
+                  {hasDriver && (
+                    <button
+                      onClick={(e) => handleQuickRemoveDriver(truck, e)}
+                      className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 transition-all"
+                      title="Remove driver from truck (leave blank to assign later)"
+                    >
+                      <UserX className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setDeletingTruck(truck)}
@@ -591,36 +840,91 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                <span className="text-slate-400 text-[10px] block">Assigned Driver</span>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {selectedTruck.assigned_driver_avatar && (
-                    <img
-                      src={selectedTruck.assigned_driver_avatar}
-                      alt={selectedTruck.assigned_driver_name}
-                      className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                    />
-                  )}
-                  <span className="font-bold text-slate-900 dark:text-white truncate">
-                    {selectedTruck.assigned_driver_name || 'Dara Chan'}
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const selectedHasDriver = Boolean(
+                  selectedTruck.assigned_driver_name &&
+                  selectedTruck.assigned_driver_name.trim() !== '' &&
+                  selectedTruck.assigned_driver_name.toLowerCase() !== 'unassigned' &&
+                  selectedTruck.assigned_driver_name.toLowerCase() !== 'none'
+                );
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                <span className="text-slate-400 text-[10px] block">Driver Telephone</span>
-                <span className="font-mono font-bold text-emerald-500">
-                  {selectedTruck.assigned_driver_phone || '+855 98 777 001'}
-                </span>
-              </div>
+                if (selectedHasDriver) {
+                  return (
+                    <>
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <span className="text-slate-400 text-[10px] block">Assigned Driver</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {selectedTruck.assigned_driver_avatar && (
+                              <img
+                                src={selectedTruck.assigned_driver_avatar}
+                                alt={selectedTruck.assigned_driver_name}
+                                className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                              />
+                            )}
+                            <span className="font-bold text-slate-900 dark:text-white truncate">
+                              {selectedTruck.assigned_driver_name}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickRemoveDriver(selectedTruck)}
+                          className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 transition-all flex items-center gap-1 shrink-0 ml-2"
+                          title="Remove driver from truck"
+                        >
+                          <UserX className="w-3 h-3" />
+                          Remove
+                        </button>
+                      </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 sm:col-span-2">
-                <span className="text-slate-400 text-[10px] block">Driver Corporate Email</span>
-                <span className="font-medium text-slate-900 dark:text-white">
-                  {selectedTruck.assigned_driver_email ||
-                    `${(selectedTruck.assigned_driver_name || 'driver').toLowerCase().replace(/\s+/g, '.')}@voleakexpress.com`}
-                </span>
-              </div>
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                        <span className="text-slate-400 text-[10px] block">Driver Telephone</span>
+                        <span className="font-mono font-bold text-emerald-500">
+                          {selectedTruck.assigned_driver_phone || '—'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 sm:col-span-2">
+                        <span className="text-slate-400 text-[10px] block">Driver Corporate Email</span>
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {selectedTruck.assigned_driver_email || '—'}
+                        </span>
+                      </div>
+                    </>
+                  );
+                }
+
+                return (
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700/80 sm:col-span-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                        <UserX className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                          No Driver Assigned (Blank Driver)
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          This truck currently has no driver. You can assign one at any time.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trk = selectedTruck;
+                        setSelectedTruck(null);
+                        openEditModal(trk);
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all flex items-center gap-1 shadow-sm shrink-0"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      + Assign Driver
+                    </button>
+                  </div>
+                );
+              })()}
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
                 <span className="text-slate-400 text-[10px] block">Safety Certificate Expiry</span>
@@ -784,7 +1088,7 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                   />
                 </div>
 
-              {/* DRIVER DETAIL SECTION (SELECT FROM STAFF) */}
+              {/* DRIVER DETAIL SECTION (SELECT FROM STAFF OR LEAVE BLANK) */}
               <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-500/5 dark:bg-slate-800/80 border border-amber-500/20 dark:border-slate-700/80 space-y-3.5">
                 <div className="flex items-center justify-between border-b border-amber-500/10 dark:border-slate-700/50 pb-2.5">
                   <div className="flex items-center gap-2">
@@ -796,26 +1100,44 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                         Driver Details (ព័ត៌មានលម្អិតអ្នកបើកបរ)
                       </h4>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Select an assigned driver from company staff or enter custom credentials
+                        Select an assigned driver from company staff, enter custom credentials, or leave blank to assign later
                       </p>
                     </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    Select from Staff
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {(formData.assigned_driver_name || (formData.assigned_driver_staff_id && formData.assigned_driver_staff_id !== 'none')) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveDriverFromForm}
+                        className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 transition-all flex items-center gap-1 shadow-xs"
+                        title="Remove driver and leave truck blank to assign later"
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>Remove Driver (ដកចេញ)</span>
+                      </button>
+                    )}
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      {formData.assigned_driver_staff_id === 'none' || !formData.assigned_driver_name ? 'Unassigned' : 'Select from Staff'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Staff Dropdown Selector */}
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
-                    Choose Driver from Staff (ជ្រើសរើសពីបញ្ជីបុគ្គលិក) <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs">
+                      Choose Driver from Staff (ជ្រើសរើសពីបញ្ជីបុគ្គលិក)
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      (Optional — can be blank to assign later)
+                    </span>
+                  </div>
                   <select
-                    value={formData.assigned_driver_staff_id || ''}
+                    value={formData.assigned_driver_staff_id || 'none'}
                     onChange={(e) => handleStaffDriverSelect(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   >
-                    <option value="">— Select a staff member as driver —</option>
+                    <option value="none">🚫 No Driver Assigned / Blank (Assign Later) (មិនទាន់ចាត់តាំងអ្នកបើកបរ)</option>
                     {driversList.length > 0 && (
                       <optgroup label="🚚 Company Drivers (បុគ្គលិកបើកបរ)">
                         {driversList.map((driver) => (
@@ -838,43 +1160,75 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                   </select>
                 </div>
 
-                {/* Selected Staff Info Card */}
-                {currentSelectedStaff && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 dark:border-emerald-500/20 shadow-xs">
-                    <img
-                      src={
-                        formData.assigned_driver_avatar ||
-                        currentSelectedStaff.avatar ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.assigned_driver_name || 'Driver')}&background=f59e0b&color=0f172a`
-                      }
-                      alt={formData.assigned_driver_name}
-                      className="w-11 h-11 rounded-xl object-cover border-2 border-emerald-500/40 shadow-xs shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-slate-900 dark:text-white text-xs">
-                          {formData.assigned_driver_name}
-                        </span>
-                        {currentSelectedStaff.khmer_name && (
-                          <span className="text-[10px] text-amber-500 font-normal">
-                            ({currentSelectedStaff.khmer_name})
-                          </span>
-                        )}
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                          Linked Staff
-                        </span>
+                {/* If No Driver Assigned / Blank Banner */}
+                {(formData.assigned_driver_staff_id === 'none' || (!formData.assigned_driver_name && formData.assigned_driver_staff_id !== 'custom')) && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                        <UserX className="w-4 h-4" />
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          {formData.assigned_driver_phone}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          {formData.assigned_driver_email}
-                        </span>
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                          Blank Driver (គ្មានអ្នកបើកបរ)
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            Can Assign Later
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          This truck will be saved with no driver assigned. You can assign a company staff driver or custom driver later.
+                        </p>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Selected Staff Info Card */}
+                {currentSelectedStaff && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 dark:border-emerald-500/20 shadow-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={
+                          formData.assigned_driver_avatar ||
+                          currentSelectedStaff.avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.assigned_driver_name || 'Driver')}&background=f59e0b&color=0f172a`
+                        }
+                        alt={formData.assigned_driver_name}
+                        className="w-11 h-11 rounded-xl object-cover border-2 border-emerald-500/40 shadow-xs shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-900 dark:text-white text-xs">
+                            {formData.assigned_driver_name}
+                          </span>
+                          {currentSelectedStaff.khmer_name && (
+                            <span className="text-[10px] text-amber-500 font-normal">
+                              ({currentSelectedStaff.khmer_name})
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            Linked Staff
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            {formData.assigned_driver_phone || 'No phone'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Mail className="w-3 h-3 text-slate-400" />
+                            {formData.assigned_driver_email || 'No email'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveDriverFromForm}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 transition-all shrink-0 ml-2"
+                      title="Unlink driver from truck"
+                    >
+                      Remove
+                    </button>
                   </div>
                 )}
 
@@ -882,26 +1236,33 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[11px]">
-                      Driver Full Name <span className="text-rose-500">*</span>
+                      Driver Full Name {formData.assigned_driver_staff_id !== 'none' && formData.assigned_driver_name && <span className="text-rose-500">*</span>}
                     </label>
                     <input
                       type="text"
-                      required
-                      placeholder="e.g. Dara Chan"
+                      required={formData.assigned_driver_staff_id !== 'none' && Boolean(formData.assigned_driver_name)}
+                      placeholder={formData.assigned_driver_staff_id === 'none' ? 'No driver assigned (blank)' : 'e.g. Dara Chan'}
                       value={formData.assigned_driver_name}
-                      onChange={(e) => setFormData({ ...formData, assigned_driver_name: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({
+                          ...formData,
+                          assigned_driver_name: val,
+                          assigned_driver_staff_id: val ? (formData.assigned_driver_staff_id === 'none' ? 'custom' : formData.assigned_driver_staff_id) : 'none',
+                        });
+                      }}
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
                     />
                   </div>
 
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[11px]">
-                      Driver Phone Number <span className="text-rose-500">*</span>
+                      Driver Phone Number {formData.assigned_driver_staff_id !== 'none' && formData.assigned_driver_name && <span className="text-rose-500">*</span>}
                     </label>
                     <input
                       type="tel"
-                      required
-                      placeholder="e.g. +855 98 777 001"
+                      required={formData.assigned_driver_staff_id !== 'none' && Boolean(formData.assigned_driver_name)}
+                      placeholder={formData.assigned_driver_staff_id === 'none' ? 'No phone (blank)' : 'e.g. +855 98 777 001'}
                       value={formData.assigned_driver_phone}
                       onChange={(e) => setFormData({ ...formData, assigned_driver_phone: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
@@ -914,7 +1275,7 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                     </label>
                     <input
                       type="email"
-                      placeholder="e.g. dara.chan@voleakexpress.com"
+                      placeholder={formData.assigned_driver_staff_id === 'none' ? 'No email (blank)' : 'e.g. dara.chan@voleakexpress.com'}
                       value={formData.assigned_driver_email}
                       onChange={(e) => setFormData({ ...formData, assigned_driver_email: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
@@ -922,6 +1283,96 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
                   </div>
                 </div>
               </div>
+
+                {/* GPS TRACKER HARDWARE PAIRING */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-500/5 dark:bg-slate-800/80 border border-amber-500/30 dark:border-slate-700/80 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-500/20 dark:border-slate-700/50">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        <Satellite className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <h4 className="font-black text-xs text-slate-900 dark:text-white">
+                          GPS Satellite Hardware Pairing (ផ្ជាប់ឧបករណ៍ GPS ផ្កាយរណប)
+                        </h4>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Assign a DAGPS tracker / IMEI to stream real-time coordinates and speed for this truck
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGpsModalOpen(true)}
+                      className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                    >
+                      <Radio className="w-3 h-3 text-emerald-500" /> Manage All Trackers
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Choose GPS Device (ជ្រើសរើសឧបករណ៍ GPS):
+                    </label>
+                    <select
+                      value={formData.gps_imei || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const matchedDev = availableGpsDevices.find((d) => d.imei === val);
+                        setFormData((prev) => ({
+                          ...prev,
+                          gps_imei: val,
+                          gps_device_name: matchedDev?.userName || matchedDev?.deviceModel || prev.gps_device_name,
+                        }));
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    >
+                      <option value="">— No GPS Hardware Assigned (Unpaired) —</option>
+                      {availableGpsDevices.map((dev) => {
+                        const currentAssignedPlate = gpsAssignments[dev.imei];
+                        const isThisTruck = currentAssignedPlate === formData.plate_number;
+                        const isOtherTruck = currentAssignedPlate && !isThisTruck;
+                        return (
+                          <option key={dev.imei || dev.id} value={dev.imei}>
+                            🛰️ {dev.userName || dev.deviceModel || 'GPS Tracker'} • IMEI: {dev.imei}
+                            {isThisTruck ? ' — [Currently assigned to this truck]' : ''}
+                            {isOtherTruck ? ` — [Assigned to: ${currentAssignedPlate}]` : ''}
+                            {dev.battery ? ` • Battery: ${dev.battery}%` : ''}
+                          </option>
+                        );
+                      })}
+                      <option value="custom_manual">✍️ Enter Custom GPS Tracker IMEI manually...</option>
+                    </select>
+
+                    {(formData.gps_imei === 'custom_manual' || (formData.gps_imei && !availableGpsDevices.some((d) => d.imei === formData.gps_imei))) && (
+                      <div className="pt-1.5 space-y-1">
+                        <label className="block text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+                          Enter Hardware IMEI (15 digits):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 358878731425895"
+                          value={formData.gps_imei === 'custom_manual' ? '' : formData.gps_imei}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, gps_imei: e.target.value.trim() }))}
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/50 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    )}
+
+                    {formData.gps_imei && formData.gps_imei !== 'custom_manual' && (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                            IMEI: {formData.gps_imei}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Telemetry will stream to this truck
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -981,6 +1432,21 @@ export default function FleetView({ buses = [], setBuses, users = [] }) {
         cancelButtonText="Cancel"
         onConfirm={handleDeleteTruck}
         onCancel={() => setDeletingTruck(null)}
+      />
+
+      {/* 8. DAGPS HARDWARE ASSIGNMENT MODAL */}
+      <DagpsConfigModal
+        isOpen={isGpsModalOpen}
+        onClose={() => {
+          setIsGpsModalOpen(false);
+          setGpsAssignments(getDeviceAssignments());
+          setAvailableGpsDevices(getCachedGpsDevices());
+        }}
+        trucks={buses}
+        onAssignmentChange={() => {
+          setGpsAssignments(getDeviceAssignments());
+          setAvailableGpsDevices(getCachedGpsDevices());
+        }}
       />
     </div>
   );

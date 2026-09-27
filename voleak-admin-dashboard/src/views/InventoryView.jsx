@@ -21,13 +21,13 @@ import {
   TOP_SPORTS_TEXTILE_BRANCH_STOCK,
   TOP_SPORTS_TEXTILE_MOVEMENTS,
   TOP_SPORTS_TEXTILE_COOP_STOCK,
+  DEFAULT_OPERATORS,
 } from '../lib/supabaseClient';
 import {
   Boxes,
   Package,
   Warehouse,
   Store,
-  AlertTriangle,
   PlusCircle,
   TrendingDown,
   TrendingUp,
@@ -36,7 +36,6 @@ import {
   SlidersHorizontal,
   Download,
   Barcode,
-  Layers,
   Edit,
   Trash2,
   CheckCircle2,
@@ -66,6 +65,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DEFAULT_CATEGORIES = [
+  'Knitted Fabrics (ក្រណាត់កប្បាស)',
   'Functional Performance Fabrics (ក្រណាត់មុខងារពិសេស)',
   'Knitted Fabrics (ក្រណាត់ត្បាញយឺត)',
   'Spandex & Elastane Blends (ក្រណាត់អេឡាស្ទីន)',
@@ -187,13 +187,13 @@ export default function InventoryView({
     warehouse_location: 'Fabric Bay A-1',
     image_url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80',
     description: '',
-    initial_hub_id: 'op-1',
+    initial_hub_id: 'hub-8star',
     initial_stock_qty: 50,
   });
 
   const [assignStockForm, setAssignStockForm] = useState({
     product_id: '',
-    branch_id: 'op-1',
+    branch_id: 'hub-8star',
     on_hand_quantity: 50,
     reserved_quantity: 0,
     warehouse_location: 'Rack A-01',
@@ -217,7 +217,7 @@ export default function InventoryView({
 
   const [restockForm, setRestockForm] = useState({
     product_id: '',
-    branch_id: 'op-1',
+    branch_id: 'hub-8star',
     quantity: 50,
     unit_cost: 0,
     reference_no: '',
@@ -227,8 +227,8 @@ export default function InventoryView({
 
   const [transferForm, setTransferForm] = useState({
     product_id: '',
-    from_branch_id: 'op-1',
-    to_branch_id: 'op-2',
+    from_branch_id: 'hub-8star',
+    to_branch_id: 'hub-kkn',
     quantity: 20,
     waybill_ref: '',
     driver_name: 'Lead Haul Driver',
@@ -237,21 +237,16 @@ export default function InventoryView({
 
   const [adjustForm, setAdjustForm] = useState({
     product_id: '',
-    branch_id: 'op-1',
+    branch_id: 'hub-8star',
     adjustment_type: 'correction',
     quantity_delta: 0,
     reason: '',
   });
 
-  // Hub / Operator List
-  const defaultHubs = [
-    { id: 'op-1', name: 'Phnom Penh Central Freight Hub', province: 'Phnom Penh' },
-    { id: 'op-2', name: 'Sihanoukville Autonomous Port Depot', province: 'Preah Sihanouk' },
-    { id: 'op-3', name: 'Bavet Border Special Economic Zone Terminal', province: 'Svay Rieng' },
-    { id: 'op-4', name: 'Poipet SEZ Cargo Depot', province: 'Banteay Meanchey' },
-    { id: 'op-5', name: 'Siem Reap Regional Freight Center', province: 'Siem Reap' },
-  ];
-  const hubs = operators && operators.length > 0 ? operators : defaultHubs;
+  // Hub / Operator List (Excluding mock hubs)
+  const hubs = (operators && operators.length > 0 ? operators : DEFAULT_OPERATORS).filter(
+    (o) => !String(o.id || '').startsWith('op-') && !String(o.code || '').startsWith('HUB-PP-01')
+  );
 
   // 6. Category Management State
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -442,41 +437,6 @@ export default function InventoryView({
   const getProduct = (productId) => products.find((p) => p.id === productId) || {};
   const getHub = (hubId) => hubs.find((h) => h.id === hubId) || { name: 'Central Hub', province: 'Phnom Penh' };
 
-  // Calculate KPIs
-  const kpiStats = useMemo(() => {
-    const totalSkus = products.length;
-    let totalUnitsOnHand = 0;
-    let totalValuation = 0;
-    let lowStockCount = 0;
-
-    const uniqueCategories = new Set(products.map((p) => p.category).filter(Boolean));
-    const activeCategoryCount = uniqueCategories.size;
-
-    const uniqueHubs = new Set(branchStock.map((bs) => bs.branch_id).filter(Boolean));
-    const activeHubCount = uniqueHubs.size || (hubs?.length || 0);
-
-    branchStock.forEach((bs) => {
-      totalUnitsOnHand += bs.on_hand_quantity || 0;
-      const prod = getProduct(bs.product_id);
-      const cost = prod.cost_price || prod.default_price || 0;
-      totalValuation += (bs.on_hand_quantity || 0) * cost;
-
-      const available = Math.max(0, (bs.on_hand_quantity || 0) - (bs.reserved_quantity || 0));
-      const minAlert = prod.min_stock_alert || 10;
-      if (available <= minAlert) {
-        lowStockCount++;
-      }
-    });
-
-    return {
-      totalSkus,
-      totalUnitsOnHand,
-      totalValuation,
-      lowStockCount,
-      activeCategoryCount,
-      activeHubCount,
-    };
-  }, [products, branchStock, hubs]);
 
   // Filtered Hub Stock
   const filteredBranchStock = useMemo(() => {
@@ -581,21 +541,53 @@ export default function InventoryView({
 
   const processImageFile = (file) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file (PNG, JPG, WEBP, SVG, GIF).');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB limit. Please choose a smaller image.');
+      showToast('⚠️ Please select a valid image file (PNG, JPG, WEBP, SVG).');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setProductForm((prev) => ({
-        ...prev,
-        image_url: event.target.result,
-      }));
-      showToast(`📸 Imported product image: ${file.name}`);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.82);
+
+          setProductForm((prev) => ({
+            ...prev,
+            image_url: compressed,
+          }));
+          showToast(`📸 Product image loaded & optimized`);
+        } catch {
+          setProductForm((prev) => ({
+            ...prev,
+            image_url: event.target.result,
+          }));
+        }
+      };
+      img.onerror = () => {
+        setProductForm((prev) => ({
+          ...prev,
+          image_url: event.target.result,
+        }));
+      };
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -622,32 +614,32 @@ export default function InventoryView({
   const generateUniqueSku = () => {
     let newSku = '';
     for (let i = 0; i < 30; i++) {
-      newSku = `VK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`;
+      newSku = `TST-PRD-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       if (!products.some((p) => p.sku?.toUpperCase() === newSku.toUpperCase())) {
         return newSku;
       }
     }
-    return `VK-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 90 + 10)}`;
+    return `TST-PRD-${Date.now().toString(36).toUpperCase()}`;
   };
 
   const handleOpenAddProduct = () => {
     setEditingProduct(null);
     setImageSourceMode('file');
-    const validDefaultCat = categories.find((c) => c !== 'All Categories') || 'Outerwear (អាវក្រៅកីឡា)';
+    const validDefaultCat = categories.find((c) => c !== 'All Categories') || 'Knitted Fabrics (ក្រណាត់កប្បាស)';
     setProductForm({
       name: '',
       sku: generateUniqueSku(),
-      barcode: `${Math.floor(Math.random() * 900000000000 + 100000000000)}`,
+      barcode: '',
       category: validDefaultCat,
-      unit: 'Roll',
-      default_price: 35.0,
-      cost_price: 22.0,
-      min_stock_alert: 20,
-      warehouse_location: 'Dock 1 - Aisle A-01',
+      unit: 'Roll (50m)',
+      default_price: 0,
+      cost_price: 0,
+      min_stock_alert: 10,
+      warehouse_location: 'General',
       image_url: '',
-      description: 'Factory-grade logistics cargo item.',
-      initial_hub_id: hubs[0]?.id || 'op-1',
-      initial_stock_qty: 40,
+      description: '',
+      initial_hub_id: '',
+      initial_stock_qty: 0,
     });
     setProductModalOpen(true);
   };
@@ -656,18 +648,18 @@ export default function InventoryView({
     setEditingProduct(prod);
     setImageSourceMode(prod.image_url?.startsWith('data:') ? 'file' : prod.image_url ? 'url' : 'file');
     setProductForm({
-      name: prod.name,
-      sku: prod.sku,
+      name: prod.name || '',
+      sku: prod.sku || '',
       barcode: prod.barcode || '',
-      category: prod.category || categories.find((c) => c !== 'All Categories') || 'Outerwear (អាវក្រៅកីឡា)',
-      unit: prod.unit || 'Roll',
+      category: prod.category || categories.find((c) => c !== 'All Categories') || 'Knitted Fabrics (ក្រណាត់កប្បាស)',
+      unit: prod.unit || 'Roll (50m)',
       default_price: prod.default_price || 0,
       cost_price: prod.cost_price || 0,
-      min_stock_alert: prod.min_stock_alert || 10,
-      warehouse_location: prod.warehouse_location || 'Aisle A-1',
+      min_stock_alert: 10,
+      warehouse_location: 'General',
       image_url: prod.image_url || '',
       description: prod.description || '',
-      initial_hub_id: hubs[0]?.id || 'op-1',
+      initial_hub_id: '',
       initial_stock_qty: 0,
     });
     setProductModalOpen(true);
@@ -677,7 +669,7 @@ export default function InventoryView({
     if (e && e.preventDefault) e.preventDefault();
 
     if (!productForm.name || !productForm.name.trim()) {
-      showToast('⚠️ Please enter a Product / Cargo Item Name');
+      showToast('⚠️ Please enter a Product Name');
       return;
     }
 
@@ -702,15 +694,15 @@ export default function InventoryView({
         const updates = {
           name: productForm.name.trim(),
           sku: cleanSku,
-          barcode: productForm.barcode,
-          category: productForm.category,
-          unit: productForm.unit,
+          barcode: productForm.barcode || '',
+          category: productForm.category || categories.find((c) => c !== 'All Categories') || 'General',
+          unit: productForm.unit || 'Roll (50m)',
           default_price: parseFloat(productForm.default_price) || 0,
           cost_price: parseFloat(productForm.cost_price) || 0,
-          min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
-          warehouse_location: productForm.warehouse_location,
-          image_url: productForm.image_url,
-          description: productForm.description,
+          min_stock_alert: 10,
+          warehouse_location: 'General',
+          image_url: productForm.image_url || 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80',
+          description: productForm.description || '',
         };
 
         const updated = await updateLocalProduct(editingProduct.id, updates);
@@ -718,53 +710,32 @@ export default function InventoryView({
         setProducts((prev) =>
           prev.map((p) => (p.id === editingProduct.id ? { ...p, ...updated } : p))
         );
+        if (onRefresh) {
+          try { await onRefresh(); } catch (e) {}
+        }
         showToast(`Updated product: ${productForm.name.trim()}`);
       } else {
         // Create (C)
         const newProdPayload = {
           name: productForm.name.trim(),
           sku: cleanSku,
-          barcode: productForm.barcode,
-          category: productForm.category,
-          unit: productForm.unit,
+          barcode: productForm.barcode || '',
+          category: productForm.category || categories.find((c) => c !== 'All Categories') || 'General',
+          unit: productForm.unit || 'Roll (50m)',
           default_price: parseFloat(productForm.default_price) || 0,
           cost_price: parseFloat(productForm.cost_price) || 0,
-          min_stock_alert: parseInt(productForm.min_stock_alert) || 10,
-          warehouse_location: productForm.warehouse_location,
-          image_url: productForm.image_url,
-          description: productForm.description,
+          min_stock_alert: 10,
+          warehouse_location: 'General',
+          image_url: productForm.image_url || 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80',
+          description: productForm.description || '',
         };
 
         const createdProduct = await addLocalProduct(newProdPayload);
-        setProducts((prev) => [createdProduct, ...prev]);
-
-        // If initial stock specified, assign to hub
-        if (productForm.initial_stock_qty > 0) {
-          const stockPayload = {
-            branch_id: productForm.initial_hub_id || hubs[0]?.id || 'op-1',
-            product_id: createdProduct.id,
-            on_hand_quantity: parseInt(productForm.initial_stock_qty),
-            reserved_quantity: 0,
-            warehouse_location: productForm.warehouse_location,
-          };
-          const createdStock = await addLocalBranchStock(stockPayload);
-          setBranchStock((prev) => [createdStock, ...prev]);
-
-          // Log movement
-          const movementPayload = {
-            movement_type: 'inbound',
-            product_id: createdProduct.id,
-            branch_id: productForm.initial_hub_id || hubs[0]?.id || 'op-1',
-            to_branch_id: null,
-            quantity: parseInt(productForm.initial_stock_qty),
-            operator_name: currentUser?.name || 'Managing Director',
-            reference_no: `INIT-${createdProduct.sku}`,
-            reason: 'Initial catalog stock intake',
-          };
-          const createdMovement = await addLocalStockMovement(movementPayload);
-          setStockMovements((prev) => [createdMovement, ...prev]);
+        setProducts((prev) => [createdProduct, ...prev.filter((p) => p.id !== createdProduct.id)]);
+        if (onRefresh) {
+          try { await onRefresh(); } catch (e) {}
         }
-        showToast(`Created new product SKU: ${createdProduct.sku}`);
+        showToast(`Created new product: ${createdProduct.name}`);
       }
       setProductModalOpen(false);
     } catch (err) {
@@ -792,7 +763,7 @@ export default function InventoryView({
   const handleOpenAssignStock = () => {
     setAssignStockForm({
       product_id: products[0]?.id || '',
-      branch_id: hubs[0]?.id || 'op-1',
+      branch_id: hubs[0]?.id || 'hub-8star',
       on_hand_quantity: 50,
       reserved_quantity: 0,
       warehouse_location: 'Bay A-01',
@@ -945,11 +916,11 @@ export default function InventoryView({
   // ==========================================
   // QUICK ACTIONS: RESTOCK, TRANSFER, ADJUST
   // ==========================================
-  const handleOpenRestock = (productId = '', branchId = 'op-1') => {
+  const handleOpenRestock = (productId = '', branchId = '') => {
     const prod = getProduct(productId || (products[0]?.id || ''));
     setRestockForm({
       product_id: productId || (products[0]?.id || ''),
-      branch_id: branchId || 'op-1',
+      branch_id: branchId || hubs[0]?.id || 'hub-8star',
       quantity: 50,
       unit_cost: prod.cost_price || 20,
       reference_no: `PO-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`,
@@ -1002,11 +973,13 @@ export default function InventoryView({
     setRestockModalOpen(false);
   };
 
-  const handleOpenTransfer = (productId = '', fromBranchId = 'op-1') => {
+  const handleOpenTransfer = (productId = '', fromBranchId = '') => {
+    const srcId = fromBranchId || hubs[0]?.id || 'hub-8star';
+    const destId = hubs.find((h) => h.id !== srcId)?.id || 'hub-kkn';
     setTransferForm({
       product_id: productId || (products[0]?.id || ''),
-      from_branch_id: fromBranchId || 'op-1',
-      to_branch_id: fromBranchId === 'op-1' ? 'op-2' : 'op-1',
+      from_branch_id: srcId,
+      to_branch_id: destId,
       quantity: 15,
       waybill_ref: `TR-${Math.floor(Math.random() * 9000 + 1000)}`,
       driver_name: 'Lead Heavy Haul Driver',
@@ -1082,10 +1055,10 @@ export default function InventoryView({
     setTransferModalOpen(false);
   };
 
-  const handleOpenAdjust = (productId = '', branchId = 'op-1') => {
+  const handleOpenAdjust = (productId = '', branchId = '') => {
     setAdjustForm({
       product_id: productId || (products[0]?.id || ''),
-      branch_id: branchId || 'op-1',
+      branch_id: branchId || hubs[0]?.id || 'hub-8star',
       adjustment_type: 'correction',
       quantity_delta: 0,
       reason: '',
@@ -1209,13 +1182,6 @@ export default function InventoryView({
             <span>+ Category</span>
           </button>
 
-          <button
-            onClick={() => handleOpenRestock()}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{t('quickRestockBtn')}</span>
-          </button>
 
           <button
             onClick={handleSyncDatabase}
@@ -1236,88 +1202,6 @@ export default function InventoryView({
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('kpiTotalSkus')}</p>
-              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                {kpiStats.totalSkus}
-              </h3>
-              <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1 mt-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> {kpiStats.activeCategoryCount} Active {kpiStats.activeCategoryCount === 1 ? 'Category' : 'Categories'}
-              </span>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Package className="w-6 h-6" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('kpiTotalUnits')}</p>
-              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                {kpiStats.totalUnitsOnHand.toLocaleString()}
-              </h3>
-              <span className="text-[11px] font-bold text-sky-500 flex items-center gap-1 mt-1">
-                <Boxes className="w-3.5 h-3.5" /> Top Sports Textile Inventory
-              </span>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-              <Layers className="w-6 h-6" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Available Cargo Stock</p>
-              <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                {(kpiStats.totalAvailable || kpiStats.totalOnHand || 0).toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
-              </h3>
-              <span className="text-[11px] font-semibold text-slate-400 mt-1 block">
-                Ready for truck dispatch & loading
-              </span>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Boxes className="w-6 h-6" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('kpiLowStockAlerts')}</p>
-              <h3 className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 mt-1">
-                {kpiStats.lowStockCount}
-              </h3>
-              <span className="text-[11px] font-bold text-amber-500 flex items-center gap-1 mt-1">
-                <AlertTriangle className="w-3.5 h-3.5" /> Threshold triggered
-              </span>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center animate-pulse">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-          </div>
-        </motion.div>
-      </div>
 
       {/* Top Sports Textile Cargo Catalog Filter & View Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
@@ -1441,51 +1325,29 @@ export default function InventoryView({
                       </p>
                     </div>
 
-                    {/* Specifications & Packaging Bottom */}
-                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Stock Unit</span>
-                          <div className="text-sm font-extrabold text-slate-900 dark:text-white">
-                            {prod.unit || 'Carton'}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Cargo Specification</span>
-                          <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            {prod.weight_kg ? `${prod.weight_kg} kg` : 'Standard Cargo'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[11px] text-slate-400">
-                          Min Alert: <strong className="text-slate-700 dark:text-slate-200">{prod.min_stock_alert}</strong>
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => setBarcodeModalItem(prod)}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-500 hover:text-white transition-all"
-                            title="Barcode"
-                          >
-                            <QrCode className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditProduct(prod)}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-500 hover:text-white transition-all"
-                            title="Edit Product"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteProductConfirm(prod)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
-                            title="Delete Product"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                    {/* Card Actions Bottom */}
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setBarcodeModalItem(prod)}
+                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-500 hover:text-white transition-all"
+                        title="Barcode"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditProduct(prod)}
+                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-500 hover:text-white transition-all"
+                        title="Edit Product"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteProductConfirm(prod)}
+                        className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
+                        title="Delete Product"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                 );
@@ -1502,8 +1364,6 @@ export default function InventoryView({
                       <th className="py-3.5 px-4">{t('thCategory')}</th>
                       <th className="py-3.5 px-4">{t('thUnit')}</th>
                       <th className="py-3.5 px-4 text-right">Barcode</th>
-                      <th className="py-3.5 px-4 text-right">Weight/Spec</th>
-                      <th className="py-3.5 px-4 text-right">{t('thMinAlert')}</th>
                       <th className="py-3.5 px-4 text-right">Location</th>
                       <th className="py-3.5 px-4 text-right">{t('thActions')}</th>
                     </tr>
@@ -1529,12 +1389,6 @@ export default function InventoryView({
                         <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">{prod.unit}</td>
                         <td className="py-3 px-4 text-right font-mono font-semibold text-slate-700 dark:text-slate-300">
                           {prod.barcode || '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-semibold text-slate-600 dark:text-slate-400">
-                          {prod.weight_kg ? `${prod.weight_kg} kg` : 'Standard'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-amber-500">
-                          {prod.min_stock_alert} units
                         </td>
                         <td className="py-3 px-4 text-right text-slate-500 font-mono text-[11px]">
                           {prod.warehouse_location || 'General'}
@@ -2118,60 +1972,17 @@ export default function InventoryView({
                     </select>
                   </div>
 
-                  {/* Cargo Weight per Unit */}
-                  <div className="space-y-1">
+                  {/* Description */}
+                  <div className="sm:col-span-2 space-y-1">
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Weight per Unit (kg)
+                      Product Description (Optional)
                     </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="e.g. 12.5"
-                      value={productForm.weight_kg || ''}
-                      onChange={(e) => setProductForm({ ...productForm, weight_kg: e.target.value })}
-                      className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    />
-                  </div>
-
-                  {/* Volume (m³ / Unit) */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Volume (m³ / Unit)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 0.15"
-                      value={productForm.volume_cbm || ''}
-                      onChange={(e) => setProductForm({ ...productForm, volume_cbm: e.target.value })}
-                      className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    />
-                  </div>
-
-                  {/* Min Stock Alert */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Min Stock Alert Threshold
-                    </label>
-                    <input
-                      type="number"
-                      value={productForm.min_stock_alert}
-                      onChange={(e) => setProductForm({ ...productForm, min_stock_alert: e.target.value })}
-                      className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    />
-                  </div>
-
-                  {/* Warehouse Location */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      Warehouse Staging Location
-                    </label>
-                    <input
-                      type="text"
-                      value={productForm.warehouse_location}
-                      onChange={(e) => setProductForm({ ...productForm, warehouse_location: e.target.value })}
-                      placeholder="e.g. Aisle A-04, Sector 1"
-                      className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                    <textarea
+                      rows={2}
+                      value={productForm.description || ''}
+                      onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                      placeholder="e.g. Premium high-grade textile fabric with soft finish."
+                      className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
                     />
                   </div>
 
@@ -2360,46 +2171,13 @@ export default function InventoryView({
                       </div>
                     )}
                   </div>
-
-                  {/* Initial Stock Intake (Only on creation) */}
-                  {!editingProduct && (
-                    <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                          Initial Stocking Hub
-                        </label>
-                        <select
-                          value={productForm.initial_hub_id}
-                          onChange={(e) => setProductForm({ ...productForm, initial_hub_id: e.target.value })}
-                          className="w-full mt-1 p-2 text-xs rounded-lg bg-white dark:bg-slate-800 border border-amber-500/30 text-slate-900 dark:text-white"
-                        >
-                          {hubs.map((h) => (
-                            <option key={h.id} value={h.id}>{h.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                          Initial Quantity On-Hand
-                        </label>
-                        <input
-                          type="number"
-                          value={productForm.initial_stock_qty}
-                          onChange={(e) => setProductForm({ ...productForm, initial_stock_qty: e.target.value })}
-                          className="w-full mt-1 p-2 text-xs rounded-lg bg-white dark:bg-slate-800 border border-amber-500/30 font-bold text-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </form>
 
               {/* Pinned Footer - Always Visible */}
               <div className="flex items-center justify-between p-4 px-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 shrink-0 backdrop-blur-xs">
                 <div className="text-[11px] text-slate-400 hidden sm:block">
-                  {!editingProduct && (
-                    <span>Auto-generates catalog SKU & initial stock ledger</span>
-                  )}
+                  <span>Fast product catalog registration</span>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
                   <button
@@ -2412,8 +2190,9 @@ export default function InventoryView({
                   <button
                     type="submit"
                     form="product-sku-form"
+                    onClick={handleSaveProduct}
                     disabled={isSubmittingProduct}
-                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5"
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     {isSubmittingProduct ? (
                       <>

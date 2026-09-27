@@ -30,10 +30,13 @@ import {
   Sliders,
   Copy,
   Code2,
+  Radio,
+  Satellite,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { checkSupabaseConnection, configureSupabase, saveCompanyProfileToDb, fetchCompanyProfileFromDb, supabase } from '../lib/supabaseClient';
+import { getDagpsConfig, saveDagpsConfig, parseDagpsUrl, fetchDagpsGpsData } from '../lib/dagpsService';
 
 // Custom Pin Icon for Company HQ Location Picker
 const createCompanyPinIcon = () =>
@@ -239,6 +242,51 @@ export default function SettingsView() {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // DAGPS Integration State
+  const [dagpsConfig, setDagpsConfig] = useState(getDagpsConfig());
+  const [dagpsTesting, setDagpsTesting] = useState(false);
+  const [dagpsTestResult, setDagpsTestResult] = useState(null);
+  const [dagpsTestError, setDagpsTestError] = useState(null);
+  const [dagpsSaved, setDagpsSaved] = useState(false);
+
+  const handleDagpsUrlChange = (val) => {
+    setDagpsConfig((prev) => {
+      const parsed = parseDagpsUrl(val);
+      if (parsed) {
+        return {
+          ...prev,
+          originalUrl: val,
+          fatherId: parsed.fatherId || prev.fatherId,
+          loginId: parsed.loginId || prev.loginId,
+          schoolId: parsed.schoolId || prev.schoolId,
+          custId: parsed.custId || prev.custId,
+          mds: parsed.mds || prev.mds,
+        };
+      }
+      return { ...prev, originalUrl: val };
+    });
+  };
+
+  const handleTestDagps = async () => {
+    setDagpsTesting(true);
+    setDagpsTestResult(null);
+    setDagpsTestError(null);
+    try {
+      const res = await fetchDagpsGpsData(dagpsConfig);
+      setDagpsTestResult(res);
+    } catch (e) {
+      setDagpsTestError(e.message || 'Error connecting to DAGPS.');
+    } finally {
+      setDagpsTesting(false);
+    }
+  };
+
+  const handleSaveDagps = () => {
+    saveDagpsConfig(dagpsConfig);
+    setDagpsSaved(true);
+    setTimeout(() => setDagpsSaved(false), 2000);
+  };
 
   // Helper to detect province from coords
   const detectProvince = (lat, lng) => {
@@ -987,6 +1035,106 @@ create policy "Allow public delete cooperator_stock" on public.cooperator_stock 
                 className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold"
               />
             </div>
+          </div>
+
+          {/* DAGPS Satellite GPS Fleet Tracking Card */}
+          <div className="p-5 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-500/20">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-amber-500 text-slate-950 font-bold">
+                  <Radio className="w-4 h-4 animate-pulse" />
+                </span>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    DAGPS Cloud Satellite Integration
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
+                      GT06 Live Tracker
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Live hardware telemetry feed: Latitude, Longitude, Battery, Speed, and Satellites.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={dagpsTesting}
+                  onClick={handleTestDagps}
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${dagpsTesting ? 'animate-spin text-amber-500' : ''}`} />
+                  {dagpsTesting ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDagps}
+                  className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {dagpsSaved ? 'Saved!' : 'Save DAGPS'}
+                </button>
+              </div>
+            </div>
+
+            {/* URL Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                DAGPS Portal / Monitor URL
+              </label>
+              <input
+                type="text"
+                value={dagpsConfig.originalUrl || ''}
+                onChange={(e) => handleDagpsUrlChange(e.target.value)}
+                placeholder="http://www.dagps.net/user/index.aspx?father_id=...&login_id=...&mds=..."
+                className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-900 dark:text-white"
+              />
+              <p className="text-[10px] text-slate-400">
+                Pasting a new DAGPS URL updates Father ID, Login ID, and MDS token automatically.
+              </p>
+            </div>
+
+            {/* Token & Father ID Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Account Father ID</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-bold truncate block">
+                  {dagpsConfig.fatherId || '09fa24a6-a6e4-4fcf-9de8-2564774a92c7'}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">MDS Session Token</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-bold truncate block">
+                  {dagpsConfig.mds || '1430e90ad691445787dba9dcc55465e7'}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Paired Truck</span>
+                <span className="font-mono text-amber-500 font-bold truncate block">
+                  {dagpsConfig.assignedTruckPlate || 'PP-3D-8890'} (Scania R450)
+                </span>
+              </div>
+            </div>
+
+            {/* Test Connection Output */}
+            {dagpsTestResult && dagpsTestResult.devices?.[0] && (
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 text-xs space-y-1">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>DAGPS Connected • Hardware Status: {dagpsTestResult.devices[0].motionStatus} ({dagpsTestResult.devices[0].battery}% Battery)</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Location: <strong className="text-slate-800 dark:text-slate-200">{dagpsTestResult.devices[0].address}</strong> ({dagpsTestResult.devices[0].latitude.toFixed(5)}°N, {dagpsTestResult.devices[0].longitude.toFixed(5)}°E)
+                </p>
+              </div>
+            )}
+            {dagpsTestError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{dagpsTestError}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-2">
