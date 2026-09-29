@@ -314,6 +314,8 @@ function DashboardContent() {
                   buses={buses}
                   users={users}
                   cooperators={cooperators}
+                  bookings={bookings}
+                  setBookings={setBookings}
                 />
               )}
               {activeTab === 'bookings' && (

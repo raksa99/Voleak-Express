@@ -161,6 +161,10 @@ export const translations = {
     statusCancelled: 'Cancelled',
     startTripBtn: 'Dispatch Truck',
     endTripBtn: 'Complete Voyage',
+    editManifestBtn: 'Edit Manifest',
+    editManifestTitle: 'Edit Truck Dispatch & Voyage Manifest',
+    deleteManifestBtn: 'Delete Manifest',
+    confirmDeleteManifest: 'Are you sure you want to delete this dispatch manifest?',
 
     // Waybills & Cargo View (Bookings)
     bookingsTitle: 'Factory Waybills & Freight Consignments',
@@ -235,6 +239,7 @@ export const translations = {
     delete: 'Delete',
     cancel: 'Cancel',
     save: 'Save Changes',
+    createBtn: 'Create',
     loading: 'Loading freight data...',
     search: 'Search...',
     all: 'All',
@@ -403,6 +408,10 @@ export const translations = {
     statusCancelled: 'បានបោះបង់',
     startTripBtn: 'បញ្ជូនរថយន្តចេញ',
     endTripBtn: 'បញ្ចប់ជើងដឹកជញ្ជូន',
+    editManifestBtn: 'កែប្រែបញ្ជីជើង',
+    editManifestTitle: 'កែប្រែការបញ្ជូនរថយន្ត & បញ្ជីជើងដឹកទំនិញ',
+    deleteManifestBtn: 'លុបបញ្ជីជើង',
+    confirmDeleteManifest: 'តើអ្នកពិតជាចង់លុបបញ្ជីជើងដឹកជញ្ជូននេះមែនទេ?',
 
     // Waybills & Cargo View
     bookingsTitle: 'ប័ណ្ណដឹកជញ្ជូន Waybills & ទំនិញរោងចក្រ (B2B)',
@@ -477,6 +486,7 @@ export const translations = {
     delete: 'លុប',
     cancel: 'បោះបង់',
     save: 'រក្សាទុក',
+    createBtn: 'បង្កើត',
     loading: 'កំពុងទាញយកទិន្នន័យ...',
     search: 'ស្វែងរក...',
     all: 'ទាំងអស់',

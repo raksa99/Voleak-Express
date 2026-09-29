@@ -172,45 +172,75 @@ export const DEFAULT_TRIPS = [
   {
     id: 'tr-1',
     trip_number: 'VKX-TRIP-901',
+    waybill_no: 'WB-8810',
     route_id: 'r-injae',
+    route_name: 'Top Sports HQ ⇄ Bowker (Kandal)',
     bus_id: 'truck-1',
+    bus_plate: 'PP-3D-7788',
     driver_name: 'Dara Chan',
+    cooperator_id: 'cop-bowker',
+    cooperator_name: 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED',
     status: 'in_progress',
     progress: 68,
     cargo_weight_tons: 28.5,
+    cargo_kg: 28500,
+    loaded_tons: 28.5,
+    total_parcels: 480,
     cargo_type: '40ft Container - Top Sports Textile Fabric Export',
-    departure_time: '2026-08-19 06:00 AM',
-    estimated_arrival: '2026-08-19 10:30 AM',
+    departure_time: '28-sep-2026',
+    estimated_arrival: '28-sep-2026',
+    trip_date: '28-sep-2026',
+    date: '28-sep-2026',
     latitude: 11.5564,
     longitude: 104.9282,
   },
   {
     id: 'tr-2',
     trip_number: 'VKX-TRIP-902',
+    waybill_no: 'WB-8811',
     route_id: 'r-moha',
+    route_name: 'Top Sports HQ ⇄ Eminent (Kandal)',
     bus_id: 'truck-2',
+    bus_plate: 'PP-3D-8890',
     driver_name: 'Sokha Meng',
+    cooperator_id: 'cop-eminent',
+    cooperator_name: 'EMINENT GARMENT (CAMBODIA) LIMITED',
     status: 'in_progress',
     progress: 42,
     cargo_weight_tons: 22.0,
+    cargo_kg: 22000,
+    loaded_tons: 22.0,
+    total_parcels: 420,
     cargo_type: 'Heavy Container - Activewear Garment Consignment',
-    departure_time: '2026-08-19 08:30 AM',
-    estimated_arrival: '2026-08-19 11:50 AM',
+    departure_time: '28-sep-2026',
+    estimated_arrival: '28-sep-2026',
+    trip_date: '28-sep-2026',
+    date: '28-sep-2026',
     latitude: 11.45,
     longitude: 104.98,
   },
   {
     id: 'tr-3',
     trip_number: 'VKX-TRIP-903',
+    waybill_no: 'WB-8812',
     route_id: 'r-seduno',
+    route_name: 'Top Sports HQ ⇄ 8 Star (Phnom Penh)',
     bus_id: 'truck-3',
+    bus_plate: 'AKR-3F-5544',
     driver_name: 'Vathanak Keo',
+    cooperator_id: 'cop-8star',
+    cooperator_name: '8 STAR SPORTSWEAR LTD.',
     status: 'scheduled',
     progress: 0,
     cargo_weight_tons: 25.0,
+    cargo_kg: 25000,
+    loaded_tons: 25.0,
+    total_parcels: 450,
     cargo_type: 'Flatbed - Spandex Textile Rolls Delivery',
-    departure_time: '2026-08-20 07:00 AM',
-    estimated_arrival: '2026-08-20 01:45 PM',
+    departure_time: '28-sep-2026',
+    estimated_arrival: '28-sep-2026',
+    trip_date: '28-sep-2026',
+    date: '28-sep-2026',
     latitude: 11.5564,
     longitude: 104.9282,
   },
@@ -438,7 +468,56 @@ export async function fetchTrips() {
     if (error || !data || data.length === 0) {
       return DEFAULT_TRIPS;
     }
-    return data;
+
+    // Also fetch bookings to link waybill_no and cooperator info
+    const { data: bData } = await supabase.from('bookings').select('id, trip_id, receiver, seat_number, status');
+    const bMap = new Map();
+    if (bData) {
+      bData.forEach((b) => {
+        if (b.trip_id) bMap.set(b.trip_id, b);
+      });
+    }
+
+    return data.map((t) => {
+      const matchedBooking = bMap.get(t.id) || bMap.get(t.trip_number);
+      const isBowker = t.id === 'TRK-901' || t.route_name?.includes('Bowker');
+      const isEminent = t.id === 'TRK-902' || t.route_name?.includes('Eminent');
+      const is8Star = t.id === 'TRK-903' || t.route_name?.includes('8 Star');
+
+      const coopName =
+        t.cooperator_name ||
+        matchedBooking?.receiver ||
+        (isBowker
+          ? 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED'
+          : isEminent
+          ? 'EMINENT GARMENT (CAMBODIA) LIMITED'
+          : is8Star
+          ? '8 STAR SPORTSWEAR LTD.'
+          : 'EMINENT GARMENT (CAMBODIA) LIMITED');
+
+      const wbNo =
+        t.waybill_no ||
+        matchedBooking?.id ||
+        (isBowker ? 'WB-8810' : isEminent ? 'WB-8811' : is8Star ? 'WB-8812' : `WB-${t.id?.replace(/\D/g, '') || '8801'}`);
+
+      const cargoKgNum =
+        t.cargo_kg ||
+        (matchedBooking?.seat_number ? parseFloat(matchedBooking.seat_number.replace(/[^0-9.]/g, '')) : null) ||
+        (isBowker ? 28500 : isEminent ? 22000 : 25000);
+
+      return {
+        ...t,
+        trip_date: t.trip_date || '28-sep-2026',
+        date: '28-sep-2026',
+        departure_time: '28-sep-2026',
+        estimated_arrival: '28-sep-2026',
+        waybill_no: wbNo,
+        cooperator_name: coopName,
+        cargo_kg: cargoKgNum,
+        loaded_tons: t.loaded_tons || (cargoKgNum ? (cargoKgNum / 1000).toFixed(1) : 22.4),
+        total_parcels: t.total_parcels || Math.floor((cargoKgNum || 20000) / 45) || 450,
+      };
+    });
   } catch {
     return DEFAULT_TRIPS;
   }
@@ -795,36 +874,186 @@ export async function addLocalSchedule(newSchedule) {
   return data;
 }
 
-export async function addLocalBooking(newBooking) {
-  const payload = {
-    id: `WB-${Math.floor(Math.random() * 9000 + 1000)}`,
-    trip_id: newBooking.trip_id,
-    passenger_name: newBooking.passenger_name || newBooking.sender,
-    sender: newBooking.sender || newBooking.passenger_name,
-    receiver: newBooking.receiver || 'Siem Reap Hub',
-    seat_number: newBooking.seat_number || '25 kg',
-    status: newBooking.status || 'confirmed',
-    total_price: newBooking.total_price || 15,
-    booking_channel: newBooking.booking_channel || 'Express Parcel',
-    cod_amount: newBooking.cod_amount || 0,
-    qr_code: `VKX-${Date.now()}-KH`,
-    booked_at: new Date().toISOString(),
+export async function addLocalTrip(newTrip) {
+  const tripId = newTrip.id || `TRK-${Math.floor(Math.random() * 900 + 100)}`;
+  const dbPayload = {
+    id: tripId,
+    route_name: newTrip.route_name || 'Top Sports Express Corridor',
+    bus_plate: newTrip.bus_plate,
+    driver_name: newTrip.driver_name || 'Dara Chan',
+    trip_date: new Date().toISOString().split('T')[0],
+    status: newTrip.status || 'scheduled',
+    departure_time: newTrip.departure_time || '06:00 AM',
+    speed_kmh: newTrip.speed_kmh || 0,
+    weight_loaded_percent: Math.min(100, Math.round(((newTrip.cargo_kg || 20000) / 30000) * 100)),
+    cargo_temp_celsius: 24,
+    latitude: 11.5564,
+    longitude: 104.9282,
+    created_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from('bookings').insert(payload).select().single();
-  if (error) {
-    console.error('[Supabase addLocalBooking error]', error);
-    return payload;
+  try {
+    const { error } = await supabase.from('trips').upsert(dbPayload);
+    if (error) {
+      console.warn('[Supabase addLocalTrip upsert error]', error);
+    }
+  } catch (err) {
+    console.warn('[Supabase addLocalTrip catch]', err);
   }
-  return data;
+
+  return {
+    ...dbPayload,
+    ...newTrip,
+    id: tripId,
+    waybill_no: newTrip.waybill_no,
+    cooperator_name: newTrip.cooperator_name,
+    cargo_kg: newTrip.cargo_kg,
+    loaded_tons: newTrip.loaded_tons || (newTrip.cargo_kg ? (newTrip.cargo_kg / 1000).toFixed(1) : 20.0),
+    total_parcels: newTrip.total_parcels || 450,
+  };
+}
+
+export async function addLocalBooking(newBooking) {
+  const waybillId = newBooking.id || `WB-${Math.floor(Math.random() * 9000 + 1000)}`;
+  const dbPayload = {
+    id: waybillId,
+    trip_id: newBooking.trip_id,
+    passenger_name: newBooking.passenger_name || newBooking.sender || 'Top Sports Textile',
+    sender: newBooking.sender || 'Top Sports Textile',
+    receiver: newBooking.receiver || 'Siem Reap Hub',
+    seat_number: newBooking.seat_number || '20,000 kg',
+    status: newBooking.status || 'confirmed',
+    total_price: newBooking.total_price || 65,
+    booking_channel: newBooking.booking_channel || 'Knitted Fabric',
+    cargo_type: newBooking.cargo_type || 'Knitted Fabric',
+    cod_amount: newBooking.cod_amount || 0,
+    qr_code: newBooking.qr_code || `VKX-${waybillId}-KH`,
+    booked_at: newBooking.booked_at || new Date().toISOString(),
+  };
+
+  try {
+    const { error } = await supabase.from('bookings').upsert(dbPayload);
+    if (error) {
+      console.error('[Supabase addLocalBooking error]', error);
+    }
+  } catch (err) {
+    console.warn('[Supabase addLocalBooking catch]', err);
+  }
+
+  return {
+    ...dbPayload,
+    truck_plate: newBooking.truck_plate,
+  };
 }
 
 export async function updateTripStatus(tripId, status) {
-  const { data, error } = await supabase.from('trips').update({ status }).eq('id', tripId).select();
-  if (error) {
-    console.error('[Supabase updateTripStatus error]', error);
+  try {
+    const { data, error } = await supabase
+      .from('trips')
+      .update({
+        status,
+        speed_kmh: status === 'in_progress' ? 75 : 0,
+      })
+      .eq('id', tripId)
+      .select();
+    if (error) console.error('[Supabase updateTripStatus error]', error);
+    return data;
+  } catch (err) {
+    console.warn('[Supabase updateTripStatus catch]', err);
   }
-  return data;
+}
+
+export async function updateLocalTrip(tripId, updates) {
+  const dbPayload = {};
+  if (updates.route_name !== undefined) dbPayload.route_name = updates.route_name;
+  if (updates.bus_plate !== undefined) dbPayload.bus_plate = updates.bus_plate;
+  if (updates.driver_name !== undefined) dbPayload.driver_name = updates.driver_name;
+  if (updates.trip_date !== undefined) dbPayload.trip_date = updates.trip_date;
+  if (updates.departure_time !== undefined) dbPayload.departure_time = updates.departure_time;
+  if (updates.status !== undefined) {
+    dbPayload.status = updates.status;
+    dbPayload.speed_kmh = updates.status === 'in_progress' ? 75 : 0;
+  }
+  if (updates.cargo_kg !== undefined) {
+    dbPayload.weight_loaded_percent = Math.min(100, Math.round(((Number(updates.cargo_kg) || 20000) / 30000) * 100));
+  }
+
+  try {
+    const { data, error } = await supabase.from('trips').update(dbPayload).eq('id', tripId).select();
+    if (error) console.warn('[Supabase updateLocalTrip error]', error);
+    return data;
+  } catch (err) {
+    console.warn('[Supabase updateLocalTrip catch]', err);
+  }
+  return updates;
+}
+
+export async function deleteLocalTrip(tripId) {
+  try {
+    const { error } = await supabase.from('trips').delete().eq('id', tripId);
+    if (error) console.warn('[Supabase deleteLocalTrip error]', error);
+  } catch (err) {
+    console.warn('[Supabase deleteLocalTrip catch]', err);
+  }
+}
+
+export async function updateLocalBooking(bookingId, updates) {
+  try {
+    const dbPayload = {};
+    if (updates.trip_id !== undefined) dbPayload.trip_id = updates.trip_id;
+    if (updates.receiver !== undefined) dbPayload.receiver = updates.receiver;
+    if (updates.seat_number !== undefined) dbPayload.seat_number = updates.seat_number;
+    if (updates.status !== undefined) dbPayload.status = updates.status;
+    if (updates.cargo_type !== undefined) dbPayload.cargo_type = updates.cargo_type;
+    if (updates.total_price !== undefined) dbPayload.total_price = updates.total_price;
+    if (updates.booked_at !== undefined) dbPayload.booked_at = updates.booked_at;
+    const { data, error } = await supabase.from('bookings').update(dbPayload).eq('id', bookingId).select();
+    if (error) console.warn('[Supabase updateLocalBooking error]', error);
+    return data;
+  } catch (err) {
+    console.warn('[Supabase updateLocalBooking catch]', err);
+  }
+  return updates;
+}
+
+export async function deleteLocalBooking(bookingId) {
+  try {
+    const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
+    if (error) console.warn('[Supabase deleteLocalBooking error]', error);
+  } catch (err) {
+    console.warn('[Supabase deleteLocalBooking catch]', err);
+  }
+}
+
+export async function updateLocalSchedule(scheduleId, updates) {
+  try {
+    const payload = {};
+    if (updates.route_id !== undefined) payload.route_id = updates.route_id;
+    if (updates.bus_id !== undefined) payload.bus_id = updates.bus_id;
+    if (updates.driver_id !== undefined) payload.driver_id = updates.driver_id;
+    if (updates.departure_time !== undefined) payload.departure_time = updates.departure_time;
+    if (updates.arrival_time !== undefined) payload.arrival_time = updates.arrival_time;
+    if (updates.days_of_week !== undefined) payload.days_of_week = updates.days_of_week;
+    if (updates.price !== undefined) {
+      payload.price = updates.price;
+      payload.base_price = updates.price;
+    }
+    const { data, error } = await supabase.from('schedules').update(payload).eq('id', scheduleId).select();
+    if (error) console.warn('[Supabase updateLocalSchedule error]', error);
+    return data;
+  } catch (err) {
+    console.warn('[Supabase updateLocalSchedule catch]', err);
+  }
+  return updates;
+}
+
+export async function deleteLocalSchedule(scheduleId) {
+  try {
+    const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+    if (error) console.warn('[Supabase deleteLocalSchedule error]', error);
+  } catch (err) {
+    console.warn('[Supabase deleteLocalSchedule catch]', err);
+  }
 }
 
 export async function saveCompanyProfileToDb(profile) {

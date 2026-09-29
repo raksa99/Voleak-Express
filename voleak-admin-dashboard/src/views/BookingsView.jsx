@@ -1,17 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Package, PlusCircle, QrCode, X, CheckCircle, AlertCircle, Scale, Layers, Truck } from 'lucide-react';
-import { addLocalBooking } from '../lib/supabaseClient';
+import { Package, QrCode, X, CheckCircle, Truck } from 'lucide-react';
 
 export default function BookingsView({ bookings = [], setBookings, trips = [], users = [], cooperators = [] }) {
   const { t } = useLanguage();
-  const [showCounterModal, setShowCounterModal] = useState(false);
   const [qrModalWaybill, setQrModalWaybill] = useState(null);
+
+  // Factory Waybills & Freight Consignments: Derived 1:1 and ONLY from Truck Dispatch Manifests
+  const effectiveBookings = useMemo(() => {
+    return trips.map((trip) => {
+      const waybillId =
+        trip.waybill_no ||
+        (trip.id === 'tr-1' || trip.id === 'TRK-901'
+          ? 'WB-8810'
+          : trip.id === 'tr-2' || trip.id === 'TRK-902'
+          ? 'WB-8811'
+          : trip.id === 'tr-3' || trip.id === 'TRK-903'
+          ? 'WB-8812'
+          : `WB-${trip.id?.replace(/\D/g, '') || '8815'}`);
+
+      const isBowker = trip.id === 'TRK-901' || trip.id === 'tr-1' || trip.route_name?.includes('Bowker');
+      const isEminent = trip.id === 'TRK-902' || trip.id === 'tr-2' || trip.route_name?.includes('Eminent');
+      const is8Star = trip.id === 'TRK-903' || trip.id === 'tr-3' || trip.route_name?.includes('8 Star');
+
+      const receiverName =
+        trip.cooperator_name ||
+        trip.cooperator ||
+        (isBowker
+          ? 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED'
+          : isEminent
+          ? 'EMINENT GARMENT (CAMBODIA) LIMITED'
+          : is8Star
+          ? '8 STAR SPORTSWEAR LTD.'
+          : cooperators[0]?.name || 'EMINENT GARMENT (CAMBODIA) LIMITED');
+
+      const kgNum =
+        trip.cargo_kg ||
+        (trip.cargo_weight_tons ? Number(trip.cargo_weight_tons) * 1000 : null) ||
+        (trip.loaded_tons ? Number(trip.loaded_tons) * 1000 : null) ||
+        (isBowker ? 28500 : isEminent ? 22000 : 25000);
+
+      const status =
+        trip.status === 'in_progress' ? 'in_transit' : trip.status === 'completed' ? 'delivered' : 'confirmed';
+
+      return {
+        id: waybillId,
+        trip_id: trip.id,
+        truck_plate: trip.bus_plate || 'PP-3D-8890',
+        sender: 'Top Sports Textile',
+        receiver: receiverName,
+        corridor: trip.route_name || 'Top Sports Express Corridor',
+        seat_number: `${Number(kgNum).toLocaleString()} kg`,
+        status,
+        total_price: 65,
+        booking_channel: 'Knitted Fabric',
+        cargo_type: 'Knitted Fabric',
+        qr_code: `VKX-${waybillId}-KH`,
+        booked_at: trip.departure_time || new Date().toISOString(),
+      };
+    });
+  }, [trips, cooperators]);
 
   // Helper to extract truck plate from dispatch trip
   const getTruckPlate = (bk) => {
     if (bk.truck_plate) return bk.truck_plate;
-    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id);
+    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id || t.waybill_no === bk.id);
     if (trip?.bus_plate) return trip.bus_plate;
     if (trip?.truck_plate) return trip.truck_plate;
     if (bk.trip_id === 'TRK-902' || bk.id === 'WB-8803') return 'PP-3E-1234';
@@ -20,7 +73,7 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
 
   // Helper to get cooperator recipient from dispatch trip
   const getDispatchRecipient = (bk) => {
-    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id);
+    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id || t.waybill_no === bk.id);
     if (trip?.cooperator_name) return trip.cooperator_name;
     if (trip?.cooperator) return trip.cooperator;
     if (trip?.client_name) return trip.client_name;
@@ -31,31 +84,25 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
       if (found?.name) return found.name;
     }
 
-    // Mapping by dispatch trip or waybill ID to verified garment partner factories
-    if (bk.trip_id === 'TRK-901' || bk.id === 'WB-8801') {
-      const found = cooperators.find(
-        (c) => c.id === 'cop-bowker' || c.short_name?.toLowerCase().includes('bowker') || c.name?.toUpperCase().includes('BOWKER')
-      );
-      return found ? found.name : 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED';
-    }
-    if (bk.trip_id === 'TRK-902' || bk.id === 'WB-8802') {
-      const found = cooperators.find(
-        (c) => c.id === 'cop-eminent' || c.short_name?.toLowerCase().includes('eminent') || c.name?.toUpperCase().includes('EMINENT')
-      );
-      return found ? found.name : 'EMINENT GARMENT (CAMBODIA) LIMITED';
-    }
-    if (bk.trip_id === 'TRK-903' || bk.id === 'WB-8803') {
-      const found = cooperators.find(
-        (c) => c.id === 'cop-8star' || c.short_name?.toLowerCase().includes('8 star') || c.name?.toUpperCase().includes('8 STAR')
-      );
-      return found ? found.name : '8 STAR SPORTSWEAR LTD.';
-    }
-
-    // If bk.receiver is already a known corporate cooperator, preserve it
     if (bk.receiver && !bk.receiver.includes('Mart') && !bk.receiver.includes('Hub') && !bk.receiver.includes('Depot')) {
       return bk.receiver;
     }
     return cooperators[0]?.name || 'EMINENT GARMENT (CAMBODIA) LIMITED';
+  };
+
+  const getCorridorName = (bk) => {
+    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id || t.waybill_no === bk.id);
+    return trip?.route_name || 'Top Sports Express Corridor';
+  };
+
+  const getWaybillStatus = (bk) => {
+    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id || t.waybill_no === bk.id);
+    if (trip) {
+      if (trip.status === 'in_progress') return 'in_transit';
+      if (trip.status === 'completed') return 'delivered';
+      if (trip.status === 'scheduled') return 'confirmed';
+    }
+    return bk.status || 'confirmed';
   };
 
   // Helper to format weight strictly into Kg
@@ -83,61 +130,23 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
     return str;
   };
 
-  // Form State
-  const defaultTrip = trips[0] || { id: 'TRK-901', bus_plate: 'PP-3D-8890' };
-  const [selectedTripId, setSelectedTripId] = useState(defaultTrip.id);
-  const [receiverName, setReceiverName] = useState(() => {
-    return defaultTrip.cooperator_name || (cooperators[0]?.name || 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED');
-  });
-  const [weightKg, setWeightKg] = useState(450);
-  const [codAmount, setCodAmount] = useState(0);
-  const [cargoType, setCargoType] = useState('Knitted Fabric');
-  const [shippingFee, setShippingFee] = useState(65);
-
-  const handleTripChange = (tripId) => {
-    setSelectedTripId(tripId);
-    const tr = trips.find((t) => t.id === tripId);
-    if (tr) {
-      const coop =
-        tr.cooperator_name ||
-        tr.cooperator ||
-        (tripId === 'TRK-901'
-          ? 'BOWKER GARMENT FACTORY (CAMBODIA) COMPANY LIMITED'
-          : 'EMINENT GARMENT (CAMBODIA) LIMITED');
-      setReceiverName(coop);
-    }
-  };
-
-  const handleCreateWaybill = (e) => {
-    e.preventDefault();
-    const selTrip = trips.find((t) => t.id === selectedTripId) || defaultTrip;
-    const finalReceiver = receiverName || getDispatchRecipient({ trip_id: selectedTripId });
-
-    const newBk = addLocalBooking({
-      trip_id: selectedTripId,
-      truck_plate: selTrip.bus_plate || 'PP-3D-8890',
-      passenger_id: `u-${Date.now()}`,
-      passenger_name: 'Top Sports Textile',
-      sender: 'Top Sports Textile',
-      receiver: finalReceiver,
-      seat_number: `${weightKg} kg`,
-      status: 'confirmed',
-      total_price: Number(shippingFee),
-      booking_channel: 'Knitted Fabric',
-      cargo_type: cargoType,
-      cod_amount: Number(codAmount),
-    });
-
-    setBookings([newBk, ...bookings]);
-    setShowCounterModal(false);
+  const getWeightKg = (bk) => {
+    const trip = trips.find((t) => t.id === bk.trip_id || t.trip_number === bk.trip_id || t.waybill_no === bk.id);
+    if (trip?.cargo_kg) return `${Number(trip.cargo_kg).toLocaleString()} kg`;
+    if (trip?.cargo_weight_tons) return `${(Number(trip.cargo_weight_tons) * 1000).toLocaleString()} kg`;
+    if (trip?.loaded_tons) return `${(Number(trip.loaded_tons) * 1000).toLocaleString()} kg`;
+    return formatKg(bk.seat_number);
   };
 
   const getStatusBadge = (st) => {
     switch (st) {
+      case 'in_transit':
       case 'boarded':
         return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30';
       case 'confirmed':
         return 'bg-sky-500/10 text-sky-500 border-sky-500/30';
+      case 'delivered':
+        return 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30';
       case 'pending':
         return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
       default:
@@ -158,13 +167,10 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
             {t('bookingsSubtitle')}
           </p>
         </div>
-        <button
-          onClick={() => setShowCounterModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs bg-amber-600 hover:bg-amber-500 text-white transition-all shadow-lg shadow-amber-500/25 shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          {t('newBookingBtn')}
-        </button>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold text-xs shadow-sm shrink-0">
+          <Truck className="w-4 h-4 text-amber-500 animate-pulse" />
+          <span>Auto-Synced with Truck Dispatch Manifests</span>
+        </div>
       </div>
 
       {/* Bookings Table */}
@@ -179,16 +185,17 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
                 <th className="p-3.5">{t('thRecipient') || 'Recipient'}</th>
                 <th className="p-3.5">{t('thWeightKg') || 'Kg'}</th>
                 <th className="p-3.5">{t('thProduct') || 'Product'}</th>
-                <th className="p-3.5">Freight Priority</th>
                 <th className="p-3.5">{t('thStatus')}</th>
                 <th className="p-3.5 rounded-r-xl text-right">{t('thTicketQr')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {bookings.map((bk) => {
+              {effectiveBookings.map((bk) => {
                 const truckPlate = getTruckPlate(bk);
                 const recipient = getDispatchRecipient(bk);
-                const kgValue = formatKg(bk.seat_number);
+                const kgValue = getWeightKg(bk);
+                const status = getWaybillStatus(bk);
+                const corridor = getCorridorName(bk);
 
                 return (
                   <tr key={bk.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
@@ -201,8 +208,11 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
                     <td className="p-3.5 font-semibold text-slate-900 dark:text-white">
                       Top Sports Textile
                     </td>
-                    <td className="p-3.5 font-semibold text-slate-800 dark:text-slate-200">
-                      {recipient}
+                    <td className="p-3.5">
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{recipient}</p>
+                        <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{corridor}</p>
+                      </div>
                     </td>
                     <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
                       {kgValue}
@@ -212,16 +222,13 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
                         Knitted Fabric
                       </span>
                     </td>
-                    <td className="p-3.5 font-bold text-purple-600 dark:text-purple-400 font-mono">
-                      <span className="px-2 py-0.5 rounded bg-purple-500/10 text-[11px]">Express Freight</span>
-                    </td>
                     <td className="p-3.5">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${getStatusBadge(
-                          bk.status
+                          status
                         )}`}
                       >
-                        {bk.status}
+                        {status}
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
@@ -256,20 +263,21 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
             <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
               <div className="w-44 h-44 mx-auto bg-white p-3 rounded-xl flex items-center justify-center shadow-inner">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrModalWaybill.qr_code}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrModalWaybill.qr_code || qrModalWaybill.id}`}
                   alt="QR Code"
                   className="w-full h-full object-contain"
                 />
               </div>
 
               <div className="text-xs space-y-1.5 text-slate-300 font-mono text-left p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <p className="font-bold text-amber-400">Tracking: {qrModalWaybill.qr_code}</p>
+                <p className="font-bold text-amber-400">Tracking: {qrModalWaybill.qr_code || `VKX-${qrModalWaybill.id}-KH`}</p>
                 <p>Truck Plate: <span className="text-amber-300 font-bold">{getTruckPlate(qrModalWaybill)}</span></p>
+                <p>Corridor: <span className="text-slate-300">{getCorridorName(qrModalWaybill)}</span></p>
                 <p>Sender: <span className="text-white font-semibold">Top Sports Textile</span></p>
                 <p>Recipient: <span className="text-white font-semibold">{getDispatchRecipient(qrModalWaybill)}</span></p>
-                <p>Kg: <span className="text-emerald-400 font-bold">{formatKg(qrModalWaybill.seat_number)}</span></p>
+                <p>Kg: <span className="text-emerald-400 font-bold">{getWeightKg(qrModalWaybill)}</span></p>
                 <p>Product: <span className="text-sky-400 font-bold">Knitted Fabric</span></p>
-                <p>Service Class: <span className="text-purple-400 font-bold">Priority Textile Freight</span></p>
+                <p>Status: <span className="text-purple-400 font-bold uppercase">{getWaybillStatus(qrModalWaybill)}</span></p>
               </div>
             </div>
 
@@ -283,127 +291,6 @@ export default function BookingsView({ bookings = [], setBookings, trips = [], u
         </div>
       )}
 
-      {/* New Cargo Waybill Creation Modal */}
-      {showCounterModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {t('newBookingBtn')}
-              </h3>
-              <button onClick={() => setShowCounterModal(false)} className="p-1 text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateWaybill} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Dispatch Manifest / Truck Voyage
-                </label>
-                <select
-                  value={selectedTripId}
-                  onChange={(e) => handleTripChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                  {trips.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.id} ({tr.bus_plate || 'PP-3D-8890'}) — {tr.route_name || 'Highway Corridor'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Sender (Origin Factory)
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value="Top Sports Textile"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-semibold cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Recipient (Cooperator from Dispatch)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={receiverName}
-                  onChange={(e) => setReceiverName(e.target.value)}
-                  placeholder="Cooperator garment factory"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Weight (Kg)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={weightKg}
-                    onChange={(e) => setWeightKg(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Shipping Fee ($)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={shippingFee}
-                    onChange={(e) => setShippingFee(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Product
-                </label>
-                <select
-                  value={cargoType}
-                  onChange={(e) => setCargoType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
-                >
-                  <option value="Knitted Fabric">Knitted Fabric</option>
-                  <option value="Knitted Fabric (High-Elasticity Spandex)">Knitted Fabric (High-Elasticity Spandex)</option>
-                  <option value="Knitted Fabric (Single Jersey Cotton)">Knitted Fabric (Single Jersey Cotton)</option>
-                  <option value="Knitted Fabric (Rib Knit Textile Rolls)">Knitted Fabric (Rib Knit Textile Rolls)</option>
-                  <option value="Knitted Fabric (Interlock Polyester)">Knitted Fabric (Interlock Polyester)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowCounterModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold"
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold shadow-md"
-                >
-                  {t('confirmBookingBtn')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
